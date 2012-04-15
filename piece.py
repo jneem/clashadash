@@ -7,35 +7,37 @@ class Piece:
     It can be deletable or not.
     """
     
-    def __init__(self,
-                 size,
-                 position,
-                 toughness=0,
-                 moveable=True,
-                 slide_priority=0):
+    def __init__(self, description, position):
         """Creates a piece.
         
         Params:
-          size is a (height, width) tuple.
-          position is a (row, column) tuple, and it refers to the smallest row
-              and column spanned by the piece. (That is, the piece occupies
-              [row, row + width - 1] x [column, column + height - 1].)
-          toughness is an integer saying by how much an attacker's power
-              will be reduced upon meeting this piece. A value of zero means
-              that attackers will go straight through without having any
-              effect.
-          moveable says whether the piece can move at all
-          slide_priority is a number that says whether the piece should move
-              to the front of the board. If slide_priority is positive, the
-              piece will try go to the front of the board, pushing aside
-              other pieces of a smaller priority.
+            description is a dict describing the properties of this piece,
+                which include:
+                    height
+                    width
+                    toughness is an integer saying by how much an attacker's
+                        power will be reduced upon meeting this piece. A value
+                        of zero means that attackers will go straight through
+                        without having any effect.
+                    moveable says whether the piece can move at all
+                    slidePriority is a number that says whether the piece
+                        should move to the front of the board. If
+                        slidePriority is positive, the piece will try go to
+                        the front of the board, pushing aside other pieces of
+                        a smaller priority.
+            position is a (row, column) pair
         """
         
+        self.name = description['name']
         self.position = position
-        self.size = size
-        self.moveable = moveable
+        self.size = (int(description['height']), int(description['width']))
+        self.moveable = bool(description.get('moveable'), False)
+        self.toughness = int(description.get('toughness', 0))
+        self.slidePriority = int(description['slidePriority'])
+        self.multiChargeable = bool(description['multiChargeable'])
+        self.image = description.get('image', '')
 
-    def charging_region(self):
+    def chargingRegion(self):
         """
         Returns a (height, width) pair. If the rectangle of the given
         dimensions behind this piece is filled with units of the appropriate
@@ -45,13 +47,28 @@ class Piece:
         """
         return (0, 0)
         
-    def can_charge(self, other):
+    def canCharge(self, other):
         """
         Returns true if other can be used to charge this.
         """
         return False
         
-    def can_merge(self, other):
+    def transformingRegion(self):
+        """
+        Returns a (height, width) pair. If the rectangle of the given
+        dimensions to the right of this piece is filled with units of the
+        appropriate color, this piece will be transformed somehow
+        (probably into a wall).
+        """
+        return (0, 0)
+        
+    def canTransform(self, other):
+        """
+        Returns true if other can be used to transform this.
+        """
+        return False
+        
+    def canMerge(self, other):
         """
         Returns true if other can be merged with this.
         """
@@ -63,7 +80,7 @@ class Piece:
         """
         pass
     
-    def damage(self, attack_strength):
+    def damage(self, attackStrength):
         """
         Damages this unit by a given amount.
         
@@ -72,7 +89,30 @@ class Piece:
         true if this piece died and should be removed.
         """
         if self.toughness > 0:
-            return (attack_strength - self.toughness,
-                    attack_strength >= self.toughness)
+            return (attackStrength - self.toughness,
+                    attackStrength >= self.toughness)
         else:
-            return (attack_strength, False)
+            return (attackStrength, False)
+
+    def charge(self):
+        """
+        Returns a new piece that was created by charging this piece.
+        """
+        print("Warning: this is not a chargeable piece")
+        return self
+        
+    def update(self):
+        """
+        Called at the beginning of each turn.
+        """
+        pass
+    
+    def readyToAttack(self):
+        """
+        If true, this unit will attack this turn.
+        """
+        return False
+        
+    def imageName(self):
+        return self.image
+        
