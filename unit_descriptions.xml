@@ -1,0 +1,19 @@
+<unitDescriptions>
+    <unit>
+        <name>Swordsman</name>
+        <toughness>3</toughness>
+        <height>1</height>
+        <width>1</width>
+        <moveable>True</moveable>
+        <slidePriority>0</slidePriority>
+        <imageBase>sword</imageBase>
+        <charge>
+            <maxPower>11</maxPower>
+            <initialPower>5</initialPower>
+            <height>3</height>
+            <width>1</width>
+            <turns>3</turns>
+            <imageBase>swordCharging</imageBase>
+        </charge>
+    </unit>
+</unitDescriptions>
