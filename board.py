@@ -20,13 +20,13 @@ class Board:
 
     def boardHeight(self):
         ''' returns an array of the max height in each column'''
-        heightA = np.zeros(grid.shape[1])
-        clist = range(grid.shape[1]) #number of columns
-        rlist = range(grid.shape[0]) #row list
+        heightA = np.zeros(self.grid.shape[1])
+        clist = range(self.grid.shape[1]) #number of columns
+        rlist = range(self.grid.shape[0]) #row list
         rlist.reverse()
         for i in clist: #for each column
             for j in rlist: #for each reverse row
-                if(self.grid[i, j] != None)
+                if(self.grid[i, j] is not None):
                     heightA = j
                     break
         return heightA
@@ -39,9 +39,9 @@ class Board:
         didStuff = 1
         while(didStuff > 0):
             didStuff = 0
-            didStuff += self.shiftToEmpty() #shift to empty squares
-            didStuff += self.createFormations() #check and make new formations
-            didStuff += self.shiftByPriority() #shift higher priority guys to front
+            didStuff += self._shiftToEmpty() #shift to empty squares
+            didStuff += self._createFormations() #check and make new formations
+            didStuff += self._shiftByPriority() #shift higher priority guys to front
        
     
     def _shiftToEmpty(self):
@@ -61,19 +61,22 @@ class Board:
                 heightList = range(currentHeight)                
                 heightList.reverse()
                 for j in heightList:
-                    if grid[row,j] is None & grid[row + fat - 1] is None:
+                    if self.grid[row,j] is None and self.grid[row + fat - 1] is None:
                             currentHeight -= 1 #slide down
                             updated = True
             #update new position
             unit.position[1] = currentHeight        
         return updated
+        
+    def _shiftByPriority(self):
+        return False
 
     def _mergeWalls(self):
         """Merges pairs of vertically adjacent walls.
         
         Returns true if anything changed.
         """
-        pass
+        return False
     
     def _createFormations(self):
         """Joins up offensive and defensive formations.
@@ -82,5 +85,7 @@ class Board:
         """
         #form a list of formations need to update
         #
-        pass
+        return False
         
+    def addPiece(self, piece, pos):
+        pass

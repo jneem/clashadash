@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-class Piece:
+class Piece(object):
     """A piece is something that lives on the board.
     
     It can be moveable (eg. a unit) or not (eg. a fire from the pit fiend)
@@ -31,10 +31,10 @@ class Piece:
         self.name = description['name']
         self.position = position
         self.size = (int(description['height']), int(description['width']))
-        self.moveable = bool(description.get('moveable'), False)
+        self.moveable = bool(description.get('moveable', False))
         self.toughness = int(description.get('toughness', 0))
-        self.slidePriority = int(description['slidePriority'])
-        self.multiChargeable = bool(description['multiChargeable'])
+        self.slidePriority = int(description.get('slidePriority', 0))
+        self.multiChargeable = bool(description.get('multiChargeable', False))
         self.image = description.get('image', '')
 
     def chargingRegion(self):
