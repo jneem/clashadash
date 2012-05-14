@@ -8,6 +8,7 @@ test_xml = """
 <item>
   <prop1>val1</prop1>
   <prop2>val2</prop2>
+  <prop2>val2a</prop2>
   <sub>
     <prop3>val3</prop3>
   </sub>
@@ -16,7 +17,7 @@ test_xml = """
 
 test_dict = {
   'prop1' : 'val1',
-  'prop2' : 'val2',
+  'prop2' : ['val2', 'val2a'],
   'sub' : {'prop3': 'val3'}
 }
 
