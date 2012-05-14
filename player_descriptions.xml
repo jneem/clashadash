@@ -2,7 +2,7 @@
     <player>
         <name>Camel</name>
         <wall>
-            <imageBase>wall</imageBase>
+            <image>wall</image>
             <toughness>7</toughness>
             <maxToughness>14</maxToughness>
         </wall>
