@@ -1,0 +1,14 @@
+<playerDescriptions>
+    <player>
+        <name>Camel</name>
+        <wall>
+            <imageBase>wall</imageBase>
+            <toughness>7</toughness>
+            <maxToughness>14</maxToughness>
+        </wall>
+        <units>
+            <unit>Swordsman</unit>
+        </units>
+    </player>
+</playerDescriptions>
+
