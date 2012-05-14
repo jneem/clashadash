@@ -28,7 +28,7 @@ class Piece(object):
         """
         
         self.name = description['name']
-        self.position = (0, 0)
+        self.position = [0,0]
         self.size = (int(description['height']), int(description['width']))
         self.moveable = bool(description.get('moveable', False))
         self.toughness = int(description.get('toughness', 0))
