@@ -66,7 +66,13 @@ class Piece(object):
         Returns true if other can be used to transform this.
         """
         return False
-        
+
+    def transform(self):
+        """
+        Returns a new piece that was created by transforming this piece.
+        """
+        raise TypeError("this is not a transformable piece")
+
     def canMerge(self, other):
         """
         Returns true if other can be merged with this.
@@ -97,8 +103,7 @@ class Piece(object):
         """
         Returns a new piece that was created by charging this piece.
         """
-        print("Warning: this is not a chargeable piece")
-        return self
+        raise TypeError("this is not a chargeable piece")
         
     def update(self):
         """

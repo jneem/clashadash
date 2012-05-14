@@ -6,7 +6,7 @@ from charging_unit import ChargingUnit
 class Unit(Piece):
     def __init__(self, description, color):
         """
-        Constructs a Unit.
+        Initializes a Unit.
         """
         Piece.__init__(self, description)
         
@@ -36,6 +36,9 @@ class Unit(Piece):
     def damage(self, attack_strength):
         # A unit always dies, even if it only took one damage.
         return (max(0, attack_strength - self.toughness), True)
+
+    def transform(self):
+        pass # TODO
         
     def charge(self):
         return ChargingUnit(self.chargeDescription, self.size,
