@@ -16,6 +16,7 @@ class BoardLayer(cocos.layer.Layer):
     def addPiece(self, piece):
         sprite = Sprite(piece.imageName())
         self.pieceSprites[piece] = sprite
+        self.add(sprite)
         sprite.x = piece.position[1] * self.pieceWidth
         sprite.y = piece.position[0] * self.pieceHeight
         
@@ -24,3 +25,8 @@ class BoardLayer(cocos.layer.Layer):
         x = piece.position[1] * self.pieceWidth
         y = piece.position[0] * self.pieceWidth
         sprite.do(MoveTo((x, y), 0.2))
+
+    def removePiece(self, piece):
+        sprite = self.pieceSprites[piece]
+        self.remove(sprite)
+        
