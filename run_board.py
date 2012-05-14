@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import cocos
-from unit_factory import UnitFactory
+from described_object_factory import UnitFactory
 from board_layer import BoardLayer
 from board import Board
 

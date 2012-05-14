@@ -1,10 +1,11 @@
 
 import unittest
-import unit_factory
+from described_object_factory import UnitFactory
+from unit import Unit
 
-class TestUnitFactory(unittest.TestCase):
+class TestDescribedObjectFactory(unittest.TestCase):
     def testCreate(self):
-        uf = unit_factory.UnitFactory('unit_descriptions.xml')
+        uf = UnitFactory('unit_descriptions.xml')
 
         s = uf.create('Swordsman', 'foobar')
         self.assertEqual(s.color, 'foobar')
@@ -15,3 +16,4 @@ class TestUnitFactory(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
