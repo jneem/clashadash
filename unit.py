@@ -42,5 +42,5 @@ class Unit(Piece):
                             self.position, self.color)
                             
     def imageName(self):
-        return self.imageBase + str(self.color) + '.png'
+        return self.imageBase + '.png'
 
