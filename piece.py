@@ -7,7 +7,7 @@ class Piece(object):
     It can be deletable or not.
     """
     
-    def __init__(self, description, position):
+    def __init__(self, description):
         """Creates a piece.
         
         Params:
@@ -25,11 +25,10 @@ class Piece(object):
                         slidePriority is positive, the piece will try go to
                         the front of the board, pushing aside other pieces of
                         a smaller priority.
-            position is a (row, column) pair
         """
         
         self.name = description['name']
-        self.position = position
+        self.position = (0, 0)
         self.size = (int(description['height']), int(description['width']))
         self.moveable = bool(description.get('moveable', False))
         self.toughness = int(description.get('toughness', 0))

@@ -4,11 +4,11 @@ from piece import Piece
 from charging_unit import ChargingUnit
 
 class Unit(Piece):
-    def __init__(self, description, position, color):
+    def __init__(self, description, color):
         """
         Constructs a Unit.
         """
-        Piece.__init__(self, description, position)
+        Piece.__init__(self, description)
         
         self.color = color
         self.chargeDescription = description['charge']
@@ -43,3 +43,4 @@ class Unit(Piece):
                             
     def imageName(self):
         return self.imageBase + str(self.color) + '.png'
+
