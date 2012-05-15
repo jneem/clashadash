@@ -1,24 +1,31 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from event_hook import EventHook
 
 class Board:
     """Represents one player's board.
     """
-    
+
     def __init__(self, height, width):
-        
+
         # The grid is an array of pointers to pieces. The same
         # piece may be pointed to from multiple squares (for big pieces).
         # If an entry is None, there is nothing in that square.
         # Orientation: row 0 = middle of board, height = the hero's belly
-        # (0,0) = bottom left, going up. (view from second player's). 
+        # (0,0) = bottom left, going up. (view from second player's).
         self.grid = np.ndarray((height, width), dtype=object)
-        
+
         # A SET of pieces on the board
         self.units = set()
-        
-    def __getitem__(self, item): 
+
+        # Event handlers for all the following events should take
+        # one unnamed argument, which is the piece to which they apply.
+        self.pieceMoved = EventHook()
+        self.pieceDeleted = EventHook()
+        self.pieceAdded = EventHook()
+
+    def __getitem__(self, item):
         '''Return the corresponding sub-table of grid.
         Throws an error if index out of bound '''
         i, j = item
@@ -56,11 +63,11 @@ class Board:
         if isinstance(j, tuple) or isinstance(j, list):
             jmax = max(j)
         else:
-            jmax = j        
+            jmax = j
         if imax >= self.grid.shape[0] or jmax >= self.grid.shape[1]:
             raise IndexError("Index larger than board size")
         self.grid[i,j] = unit
-                
+
     def boardHeight(self):
         ''' returns an array of the max height in each column'''
         heightA = np.zeros(self.grid.shape[1], dtype = 'int8')
@@ -72,28 +79,50 @@ class Board:
         return heightA
 
     def normalize(self):
-        """Updates the board by sliding pieces, find and update links, 
+        """Updates the board by sliding pieces, find and update links,
         slide by priority,
         and iterate these 3 steps until no more updates required.
         """
         shiftStuff = 1
         while(shiftStuff > 0):
             shiftStuff = 0
+            self._recordPiecePositions()
             shiftStuff += self._shiftToEmpty() #shift to empty squares
-            formStuff = 1            
+            self._reportPieceMotion()
+            formStuff = 1
             while(formStuff > 0):
                 formStuff = 0
                 create = self._createFormations() #check and make new formations
                 formStuff += create
                 shiftStuff += create
+                self._recordPiecePositions()
                 priority = self._shiftByPriority() #shift higher priority guys to front
+                self._reportPieceMotion()
                 formStuff += priority
                 shiftStuff += priority
             shiftStuff += self._mergeWalls()
-    
+
+    def _recordPiecePositions(self):
+        """Record the current position of all the pieces."""
+        self.piecePositions = {}
+        for u in self.units:
+            self.piecePositions[u] = u.position
+
+    def _reportPieceMotion(self):
+        """Trigger pieceMoved events.
+
+        Compare the position of all pieces with their positions
+        as stored in self.piecePositions. For any differences,
+        emit a pieceMoved event.
+        """
+
+        for u in self.units:
+            if u in self.piecePositions and self.piecePositions[u] != u.position:
+                self.pieceMoved.callHandlers(u)
+
     def _shiftToEmpty(self):
         """Shifts all pieces to empty squares.
-        
+
         Returns true if anything changed.
         """
         updated = False
@@ -107,17 +136,17 @@ class Board:
                 for i in reversed(range(unit.position[0])):
                     if self[i, col] is not None or self[i, col+fat-1] is not None: #if cannot slide further
                         if unit.position[0] != i+1:
-                            updated = True                        
+                            updated = True
                             unit.position[0] = i+1 #make the unit be on top of this position
                         break
         return updated
-        
+
     def _mergeWalls(self):
-        """Merges pairs of vertically adjacent walls. 
+        """Merges pairs of vertically adjacent walls.
         Does one merging per column, from bottom row to top
-        
+
         ALSO: merge units that can be merged (such as fusing)
-        
+
         Returns true if anything changed.
         """
         #cycle through units by column over (j), then over row (i)
@@ -132,13 +161,13 @@ class Board:
                     updated = True
                     for k in range(i+unit.size[0], i+unit.size[0]+unitTop.size[0]):
                         self[k,j] = None
-                    self.units.discard(unitTop)                        
+                    self.units.discard(unitTop)
                     self.units.discard(unit)
                     unit = unit.merge()
                     self.units.add(unit)
                     break
         return updated
-    
+
     def _shiftByPriority(self):
        """Shift pieces by priority
        Returns true if anything changed
@@ -155,7 +184,7 @@ class Board:
        for j in range(ncol): #for j column
            unitCol = self.getPieces(range(nrow), [j])
            if unitCol is None:
-               continue #has no unit           
+               continue #has no unit
            unitCol = list(unitCol) #turn to a list instead of a set
            #make sure the list has the same order as the current list
            #i.e: sort by increasing row
@@ -178,7 +207,7 @@ class Board:
                            updated = True
                            unit.position = [i,j]
                        if unit.size == (2,2):
-                           fatty.append(unit)                         
+                           fatty.append(unit)
            #check for fatty disalignment
            trynum = 0
            while self._doAlignFatty(fatty):
@@ -188,9 +217,9 @@ class Board:
                if(trynum > 100):
                    raise MemoryError("attempt to realign fatty over 100 times")
        return updated
-       
-    def _doAlignFatty(self, fatList): 
-        """ correct guys in the fatList if unaligned 
+
+    def _doAlignFatty(self, fatList):
+        """ correct guys in the fatList if unaligned
         these guys have to have size 2x2
         return True if did something """
         updated = False
@@ -202,7 +231,7 @@ class Board:
                 for i in reversed(range(self.grid.shape[0])):
                     if self[i, j] == unit:
                         topCornerLoc = i
-                        break              
+                        break
                 #if top corner is higher
                 if topCornerLoc > unit.position[0]+1:
                     #shift the leftside up as far as possible
@@ -213,7 +242,7 @@ class Board:
                             maxShift = i
                     #shift up by maxshift
                     if(maxShift > 0):
-                        self._doShiftUp(j-1, unit.position[0]+maxShift, topCornerLoc-1)                               
+                        self._doShiftUp(j-1, unit.position[0]+maxShift, topCornerLoc-1)
                     #then shift the rightside down
                     self._doShiftDown(j, topCornerLoc-1,unit.position[0], 2)
                 #if top corner is lower
@@ -229,7 +258,7 @@ class Board:
                         self._doShiftUp(j, topCornerLoc-1, topCornerLoc-1+maxShift)
                     #then shift the leftside down
                     self._doShiftDown(j-1,unit.position[0], topCornerLoc+maxShift,2)
-                            
+
         return updated
 
     def _canShiftUp(self, col, oldRow, newRow):
@@ -244,11 +273,11 @@ class Board:
         if newRow - oldRow < empty: #if shift up by an amount < empty:
             return True
         else:
-            return False  
+            return False
     def _doShiftUp(self, col, oldRow, newRow):
-        """ Shift an object at (oldRow, col) to (newRow, col), 
+        """ Shift an object at (oldRow, col) to (newRow, col),
         create None in the intermediate rows
-        and shift all the guys behind him as well.  
+        and shift all the guys behind him as well.
         Assuming that things behind him are in a continuous column.
         """
         nrow = self.grid.shape[0]
@@ -265,7 +294,7 @@ class Board:
                 self[i,col] = None
     def _doShiftDown(self, col, oldRow, newRow, size):
         """ Shift an object of size size, from (oldRow, col) DOWN to (newRow, col).
-        For all objects which get displaced, put them in the same order in the 
+        For all objects which get displaced, put them in the same order in the
         vacant rows. Effectively: swap the blocks
         """
         #identify current top and bottom blocks
@@ -273,14 +302,14 @@ class Board:
         botBlock = self[range(newRow, oldRow), col]
         #copy bottom out
         bottemp = botBlock.copy()
-        #shift top down        
+        #shift top down
         self[newRow, newRow+size] = topBlock
         #update unit position if its base is in this column
         for i in range(newRow, newRow+size):
             unit = self[i,col]
             if unit is None:
                 continue
-            if unit.position[1] == col: 
+            if unit.position[1] == col:
                 unit.position[0] = i
         #shift bottom block up
         self[newRow+size, oldRow+size] = bottemp
@@ -293,8 +322,11 @@ class Board:
                 unit.position[0] = i
 
     def addPiece(self, piece, col):
-        '''Add piece piece to column col on the board
-        Raise exception if not possible
+        '''Add a piece to the board at the given column.
+
+        Raise an IndexError if the piece doesn't fit on the board.
+        Note that this function does not normalize the board
+        automatically.
         '''
         #check piece size
         #for each column, find the nearest empty row
@@ -303,7 +335,7 @@ class Board:
         tall = piece.size[0]
         fat = piece.size[1]
         if col+fat > self.grid.shape[1]: #flag if piece is too fat
-            raise IndexError("Trying to add piece outside of board")            
+            raise IndexError("Trying to add piece outside of board")
         #check height of current board
         colHeight = self.boardHeight()
         maxHeight = int(max(colHeight[range(col, col+fat)])) #maximum height (row) can add
@@ -316,13 +348,34 @@ class Board:
             for i in range(maxHeight, maxHeight+tall):
                 for j in range(col, col+fat):
                     self[i,j] = piece
-    
+
+        self.pieceAdded.callHandlers(piece)
+
+    def deletePiece(self, piece):
+        """Remove a piece from the board.
+
+        Raise a ValueError if the piece is not on the board.
+        Note that this function does not normalize the board
+        automatically.
+        """
+        if piece not in self.units:
+            raise ValueError("Tried to remove a non-existent piece")
+
+        self.units.remove(piece)
+        tall = piece.size[0]
+        fat = piece.size[1]
+        row = piece.position[0]
+        col = piece.position[1]
+        self.grid[row:(row+tall), col:(col+fat)] = None
+
+        self.pieceDeleted.callHandlers(piece)
+
     def _createFormations(self):
-        ''' Turn things into charging units and transform things into walls 
-        
+        ''' Turn things into charging units and transform things into walls
+
         Return True if did something '''
         #piece.charge: returns a new charging unit
-        #piece.transforming_region: returns a transforming region so 
+        #piece.transforming_region: returns a transforming region so
         #things can be turned into walls. format = height, width.
         #piece.multichargeable: True if multi allowed
         updated = False
@@ -332,7 +385,7 @@ class Board:
         #make a blacklist of guys not allowed to be marked as charging
         notChargePosition = []
         for unit in unitList:
-            #check the size of charging region. 
+            #check the size of charging region.
             chargeSize = unit.chargingRegion()
             if(chargeSize != (0,0)): #if chargable
                 #look at the relevant list of objects
@@ -345,11 +398,11 @@ class Board:
                         #mark this guy as charged
                         chargePosition.append(unit.position)
                         #check if unit blacklists anyone
-                        if(not unit.multichargeable()): 
+                        if(not unit.multichargeable()):
                             for x in obj: #blacklist all obj
-                                notChargePosition.append(x.position) 
+                                notChargePosition.append(x.position)
         #sort by columns now
-        unitList = sorted(list(self.units), key = lambda piece: piece.position[1])           
+        unitList = sorted(list(self.units), key = lambda piece: piece.position[1])
         #make a wall-forming list (transforming list)
         transformPosition = []
         for unit in unitList:
@@ -371,8 +424,8 @@ class Board:
         notChargePosition = set(notChargePosition)
         chargePosition = list(chargePosition.difference(notChargePosition))
         if(len(transformPosition) > 0 | len(chargePosition) > 0): #if need to update something
-            updated = True    
-            #create formations        
+            updated = True
+            #create formations
             for pos in chargePosition:
                 #remove guys behind
                 unit = self[pos]
@@ -392,7 +445,7 @@ class Board:
             #create walls
             for pos in transformPosition:
                 #delete the guy and turn him into a wall
-                unit = self[pos]                
+                unit = self[pos]
                 self.units.discard(unit)
                 unit = unit.transform()
                 self.units.add(unit)

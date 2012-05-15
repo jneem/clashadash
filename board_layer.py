@@ -20,6 +20,16 @@ class BoardLayer(cocos.layer.Layer):
         self.pieceWidth = pieceWidth
         self.pieceHeight = pieceHeight
         self.pieceLayers = {}
+        self.slideTime = 0.2
+        
+        # Add all the pieces that are currently on the board.
+        for p in board.units:
+            self.addPiece(p)
+            
+        # Set up handlers to catch future changes to the board.
+        board.pieceAdded.addHandler(self.addPiece)
+        board.pieceMoved.addHandler(self.movePiece)
+        board.pieceDeleted.addHandler(self.deletePiece)
 
     def yAt(self, row):
         """The y coordinate of the given row."""
@@ -36,16 +46,20 @@ class BoardLayer(cocos.layer.Layer):
         pieceLayer = PieceLayer(piece, self.pieceWidth, self.pieceHeight)
         self.pieceLayers[piece] = pieceLayer
         self.add(pieceLayer)
+        
+        # For a better visual cue, place the piece at the top of its
+        # column, then animate it into the correct position.
         pieceLayer.x = self.xAt(piece.position[1])
-        pieceLayer.y = self.yAt(piece.position[0])
+        pieceLayer.y = self.yAt(board.height - 1)
+        self.movePiece(piece)
         
     def movePiece(self, piece):
         pl = self.pieceLayers[piece]
         x = self.xAt(piece.position[1])
         y = self.yAt(piece.position[0])
-        pl.do(MoveTo((x, y), 0.2))
+        pl.do(MoveTo((x, y), self.slideTime))
 
-    def removePiece(self, piece):
+    def deletePiece(self, piece):
         pl = self.pieceLayers[piece]
         self.remove(pl)
 
