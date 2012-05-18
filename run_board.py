@@ -9,7 +9,7 @@ uf = UnitFactory('unit_descriptions.xml')
 
 cocos.director.director.init()
 board = Board(6, 8)
-board_layer = BoardLayer(board, 96, 96)
+board_layer = BoardLayer(board, 96, 96, False)
 
 # Fill the board
 for row in range(6):
@@ -19,7 +19,7 @@ for row in range(6):
             color = 'red'
 
         sword = uf.create('Swordsman', color)
-        sword.position = (row, col)
+        sword.position = [row, col]
         board_layer.addPiece(sword)
 
 main_scene = cocos.scene.Scene(board_layer)

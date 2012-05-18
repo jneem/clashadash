@@ -20,6 +20,7 @@ class BoardLayer(cocos.layer.Layer):
         self.pieceWidth = pieceWidth
         self.pieceHeight = pieceHeight
         self.pieceLayers = {}
+        self.reflect = reflect
 
     def yAt(self, row):
         """The y coordinate of the given row."""
@@ -28,7 +29,7 @@ class BoardLayer(cocos.layer.Layer):
     def xAt(self, col):
         """The x coordinate of the given column."""
         if self.reflect:
-            return col * (board.height - self.pieceHeight)
+            return col * (self.board.height - self.pieceHeight)
         else:
             return col * self.pieceHeight
 

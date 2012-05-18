@@ -17,6 +17,8 @@ class Board:
         
         # A SET of pieces on the board
         self.units = set()
+        self.height = height
+        self.width = width
         
     def __getitem__(self, item): 
         '''Return the corresponding sub-table of grid.
