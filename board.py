@@ -24,6 +24,16 @@ class Board:
         self.pieceMoved = EventHook()
         self.pieceDeleted = EventHook()
         self.pieceAdded = EventHook()
+        # pieceAppeared is for pieces that appeared in the middle of the board
+        # (eg. ChargingUnit), whereas pieceAdded is for pieces that slid onto
+        # the board (eg. they were called or moved by the user).
+        self.pieceAppeared = EventHook()
+
+        # The set of pieces that have been moved since the last time
+        # the pieceMoved handler was triggered.
+        self._movedPieces = set()
+        self._deletedPieces = set()
+        self._appearedPieces = set()
 
     def __getitem__(self, item):
         '''Return the corresponding sub-table of grid.
@@ -93,6 +103,7 @@ class Board:
             while(formStuff > 0):
                 formStuff = 0
                 create = self._createFormations() #check and make new formations
+                self._reportAppearanceDeletion()
                 formStuff += create
                 shiftStuff += create
                 self._recordPiecePositions()
@@ -101,6 +112,7 @@ class Board:
                 formStuff += priority
                 shiftStuff += priority
             shiftStuff += self._mergeWalls()
+            self._reportAppearanceDeletion()
 
     def _recordPiecePositions(self):
         """Record the current position of all the pieces."""
@@ -116,9 +128,23 @@ class Board:
         emit a pieceMoved event.
         """
 
+        moved = set()
         for u in self.units:
             if u in self.piecePositions and self.piecePositions[u] != u.position:
-                self.pieceMoved.callHandlers(u)
+                moved.add(u)
+
+        if moved:
+            self.pieceMoved.callHandlers(moved)
+
+    def _reportAppearanceDeletion(self):
+        """Trigger pieceAppeared and pieceDeleted events."""
+
+        if self._appearedPieces:
+            self.pieceAppeared.callHandlers(self._appearedPieces.copy())
+        if self._deletedPieces:
+            self.pieceDeleted.callHandlers(self._deletedPieces.copy())
+        self._appearedPieces.clear()
+        self._deletedPieces.clear()
 
     def _shiftToEmpty(self):
         """Shifts all pieces to empty squares.
@@ -161,10 +187,8 @@ class Board:
                     updated = True
                     for k in range(i+unit.size[0], i+unit.size[0]+unitTop.size[0]):
                         self[k,j] = None
-                    self.units.discard(unitTop)
-                    self.units.discard(unit)
-                    unit = unit.merge()
-                    self.units.add(unit)
+                    unit.merge(unitTop)
+                    self._deletePiece(unitTop)
                     break
         return updated
 
@@ -351,7 +375,7 @@ class Board:
 
         self.pieceAdded.callHandlers(piece)
 
-    def deletePiece(self, piece):
+    def _deletePiece(self, piece):
         """Remove a piece from the board.
 
         Raise a ValueError if the piece is not on the board.
@@ -368,7 +392,7 @@ class Board:
         col = piece.position[1]
         self.grid[row:(row+tall), col:(col+fat)] = None
 
-        self.pieceDeleted.callHandlers(piece)
+        self._deletedPieces.add(piece)
 
     def _createFormations(self):
         ''' Turn things into charging units and transform things into walls
@@ -423,7 +447,7 @@ class Board:
         chargePosition = set(chargePosition)
         notChargePosition = set(notChargePosition)
         chargePosition = list(chargePosition.difference(notChargePosition))
-        if(len(transformPosition) > 0 | len(chargePosition) > 0): #if need to update something
+        if len(transformPosition) > 0 or len(chargePosition) > 0: #if need to update something
             updated = True
             #create formations
             for pos in chargePosition:
@@ -432,22 +456,34 @@ class Board:
                 chargeSize = unit.chargingRegion()
                 for i in range(unit.position[0], unit.position[0]+chargeSize[0]):
                     for j in range(unit.position[1], unit.position[1]+chargeSize[1]):
-                        self.units.discard(self[i,j])
-                        self[i, j] = None
-                #charge up
-                self.units.discard(unit)
-                unit = unit.charge()
-                self.units.add(unit)
-                #make sure squares that this unit take up are pointed to it
-                for i in range(unit.position[0], unit.position[0]+unit.size[0]):
-                    for j in range(unit.position[1], unit.position[1]+chargeSize[1]):
-                        self[i,j] = unit
-            #create walls
+                        self._deletePiece(self[i,j])
+                self._replacePiece(unit, unit.charge())
+            # create walls
+            # FIXME: what if something is in chargePosition and transformPosition?
             for pos in transformPosition:
-                #delete the guy and turn him into a wall
+                # delete the guy and turn him into a wall
                 unit = self[pos]
-                self.units.discard(unit)
-                unit = unit.transform()
-                self.units.add(unit)
-                self[pos] = unit
+                self._replacePiece(unit, unit.transform())
         return updated
+
+    def _appearPiece(self, piece, pos):
+        """Place a new piece in the given position."""
+
+        self.units.add(piece)
+        piece.position = pos
+        tall = piece.size[0]
+        fat = piece.size[1]
+        row = piece.position[0]
+        col = piece.position[1]
+        self.grid[row:(row+tall), col:(col+fat)] = piece
+        self._appearedPieces.add(piece)
+
+    def _replacePiece(self, old, new):
+        """Replaces an old piece with a new one.
+
+        The pieces must be the same size, or a ValueError is raised.
+        """
+
+        pos = old.position
+        self._deletePiece(old)
+        self._appearPiece(new, pos)
