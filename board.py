@@ -411,42 +411,37 @@ class Board:
         return self._piecesInRegion(piece.position, piece.transformingRegion())
 
     def _createFormations(self):
-        """Turn things into charging units and transform things into walls
+        """Create walls and charging formations.
 
-       Return True if did something"""
-        #piece.charge: returns a new charging unit
-        #piece.transforming_region: returns a transforming region so
-        #things can be turned into walls. format = height, width.
-        #piece.multichargeable: True if multi allowed
-        updated = False
+       Return true if any formations were created."""
+
         unitList = sorted(list(self.units), key = lambda piece: piece.position[0])
         # a set of units to charge
         chargingPieces = set()
         # a blacklist of guys not allowed to be marked as charging
         chargeBlacklist = set()
         for unit in unitList:
-            if unit.chargingRegion() != (0,0): # if the unit is chargeable
-                # look at the pieces in the charging region
-                chargers = self._chargers(unit)
-                if chargers and all(unit.canCharge(x) for x in chargers):
-                    # then this unit can be charged
-                    chargingPieces.add(unit)
-                    # Check if this unit blacklists someone else.
-                    if not unit.multiChargeable():
-                        chargeBlacklist.update(chargers)
+            # Look at the pieces in the charging region.  If there are some,
+            # and they are all good then the unit gets charged.
+            chargers = self._chargers(unit)
+            if chargers and all(unit.canCharge(x) for x in chargers):
+                # then this unit can be charged
+                chargingPieces.add(unit)
+                # Check if this unit blacklists someone else.
+                if not unit.multiChargeable():
+                    chargeBlacklist.update(chargers)
+
         #sort by columns now
         unitList = sorted(list(self.units), key = lambda piece: piece.position[1])
-
         # a set of pieces to be transformed (into walls)
         transformingPieces = set()
         for unit in unitList:
-            if unit.transformingRegion != (0, 0): # if the unit is transformable
-                transformers = self._transformers(unit)
-                if transformers and all(unit.canTransform(x) for x in transformers):
-                    # This unit can be transformed: mark it and _all_ the
-                    # transforming objects as transforming.
-                    transformingPieces.add(unit)
-                    transformingPieces.update(transformers)
+            transformers = self._transformers(unit)
+            if transformers and all(unit.canTransform(x) for x in transformers):
+                # This unit can be transformed: mark it and _all_ the
+                # transforming objects as transforming.
+                transformingPieces.add(unit)
+                transformingPieces.update(transformers)
 
         chargingPieces.difference_update(chargeBlacklist)
         # Create charging formations.
