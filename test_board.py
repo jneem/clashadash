@@ -43,40 +43,31 @@ class TestBoard(unittest.TestCase):
         self.assertEqual(piece3.position, [0, 0])
         self.assertEqual(piece2.position, [2, 0])
 
-    def testPieceHandlers(self):
+    def testPieceUpdate(self):
         b = Board(3, 3)
         piece1 = DummyPiece(1, 1)
         piece2 = DummyPiece(1, 1)
         piece3 = DummyPiece(1, 1)
         piece3.slidePriority = 5
-        added = []
-        moved = []
-        deleted = []
-        blah = []
+        updates = [None]
 
-        def addHandler(p): added.append(p)
-        def moveHandler(p): moved.append(p)
-        def deleteHandler(p): deleted.append(p)
-        b.pieceAdded.addHandler(addHandler)
-        b.pieceMoved.addHandler(moveHandler)
-        b.pieceDeleted.addHandler(deleteHandler)
+        def updateHandler(p): updates[0] = p
+        b.pieceUpdated.addHandler(updateHandler)
 
         b.addPiece(piece1, 0)
-        self.assertEqual(added, [piece1])
         b.normalize()
-        self.assertEqual(moved, []) # Adding a piece doesn't trigger a move
+        self.assertEqual(updates[0], set([piece1]))
         b.addPiece(piece2, 1)
-        self.assertEqual(added, [piece1, piece2])
-        self.assertEqual(moved, [])
+        b.normalize()
+        self.assertEqual(updates[0], set([piece2]))
         b.addPiece(piece3, 0)
         b.normalize()
-        self.assertEqual(added, [piece1, piece2, piece3])
-        self.assertEqual(moved, [set([piece1, piece3])])
+        self.assertEqual(updates[0], set([piece1, piece3]))
 
         # TODO: avoid using private functions to test pieceDeleted
         b._deletePiece(piece1)
-        b._reportAppearanceDeletion()
-        self.assertEqual(deleted, [set([piece1])])
+        b._reportPieceUpdates()
+        self.assertEqual(updates[0], set([piece1]))
 
 
 if __name__ == '__main__':

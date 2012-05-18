@@ -16,26 +16,25 @@ class Board:
         # (0,0) = bottom left, going up. (view from second player's).
         self.grid = np.ndarray((height, width), dtype=object)
 
-        # A SET of pieces on the board
+        # A set of pieces on the board.
         self.units = set()
+
+        # Dimensions (in logical squares) of the board.
         self.height = height
         self.width = width
 
-        # Event handlers for all the following events should take
-        # one unnamed argument, which is the piece to which they apply.
-        self.pieceMoved = EventHook()
-        self.pieceDeleted = EventHook()
-        self.pieceAdded = EventHook()
-        # pieceAppeared is for pieces that appeared in the middle of the board
-        # (eg. ChargingUnit), whereas pieceAdded is for pieces that slid onto
-        # the board (eg. they were called or moved by the user).
-        self.pieceAppeared = EventHook()
+        # Event handlers for that will be triggered each time a piece is
+        # changed (added, removed, or moved). The callbacks should take
+        # one unnamed argument, which is a set of pieces to which they apply.
+        self.pieceUpdated = EventHook()
 
-        # The set of pieces that have been moved since the last time
-        # the pieceMoved handler was triggered.
-        self._movedPieces = set()
-        self._deletedPieces = set()
-        self._appearedPieces = set()
+        # The set of pieces that have been updated since the last time
+        # the pieceUpdated handler was triggered.
+        self._updatedPieces = set()
+
+        # Keeps track of piece positions so that we can detect if they
+        # have changed.
+        self._piecePositions = {}
 
     def __getitem__(self, item):
         '''Return the corresponding sub-table of grid.
@@ -98,61 +97,56 @@ class Board:
         shiftStuff = 1
         while(shiftStuff > 0):
             shiftStuff = 0
-            self._recordPiecePositions()
             shiftStuff += self._shiftToEmpty() #shift to empty squares
-            self._reportPieceMotion()
+            self._reportPieceUpdates()
             formStuff = 1
             while(formStuff > 0):
                 formStuff = 0
                 create = self._createFormations() #check and make new formations
-                self._reportAppearanceDeletion()
+                self._reportPieceUpdates()
                 formStuff += create
                 shiftStuff += create
-                self._recordPiecePositions()
+
                 priority = self._shiftByPriority() #shift higher priority guys to front
-                self._reportPieceMotion()
+                self._reportPieceUpdates()
                 formStuff += priority
                 shiftStuff += priority
+
             shiftStuff += self._mergeWalls()
-            self._reportAppearanceDeletion()
+            self._reportPieceUpdates()
 
-    def _recordPiecePositions(self):
-        """Record the current position of all the pieces."""
-        self.piecePositions = {}
-        for u in self.units:
-            self.piecePositions[u] = u.position
+    def _reportPieceUpdates(self):
+        """Trigger pieceUpdated events.
 
-    def _reportPieceMotion(self):
-        """Trigger pieceMoved events.
-
-        Compare the position of all pieces with their positions
-        as stored in self.piecePositions. For any differences,
-        emit a pieceMoved event.
-        """
+       The pieces to be updated are everything that is currently
+       in self._updatedPieces, together with the pieces that
+       have changed their position since we were last called.
+       """
 
         moved = set()
         for u in self.units:
-            if u in self.piecePositions and self.piecePositions[u] != u.position:
+            if u in self._piecePositions and self._piecePositions[u] != u.position:
                 moved.add(u)
 
-        if moved:
-            self.pieceMoved.callHandlers(moved)
+        self._updatedPieces.update(moved)
 
-    def _reportAppearanceDeletion(self):
-        """Trigger pieceAppeared and pieceDeleted events."""
+        if self._updatedPieces:
+            # Pass a copy, so that it isn't cleared when we clear our version.
+            self.pieceUpdated.callHandlers(self._updatedPieces.copy())
 
-        if self._appearedPieces:
-            self.pieceAppeared.callHandlers(self._appearedPieces.copy())
-        if self._deletedPieces:
-            self.pieceDeleted.callHandlers(self._deletedPieces.copy())
-        self._appearedPieces.clear()
-        self._deletedPieces.clear()
+        self._updatedPieces.clear()
+
+        # Record the current positions of all pieces, for use the next time
+        # we get called.
+        self._piecePositions.clear()
+        for u in self.units:
+            self._piecePositions[u] = u.position
 
     def _shiftToEmpty(self):
         """Shifts all pieces to empty squares.
 
-        Returns true if anything changed.
-        """
+       Returns true if anything changed.
+       """
         updated = False
         #sort units by increasing row values
         unitList = sorted(list(self.units), key = lambda piece: piece.position[0])
@@ -284,7 +278,6 @@ class Board:
                         self._doShiftUp(j, topCornerLoc-1, topCornerLoc-1+maxShift)
                     #then shift the leftside down
                     self._doShiftDown(j-1,unit.position[0], topCornerLoc+maxShift,2)
-
         return updated
 
     def _canShiftUp(self, col, oldRow, newRow):
@@ -300,6 +293,7 @@ class Board:
             return True
         else:
             return False
+
     def _doShiftUp(self, col, oldRow, newRow):
         """ Shift an object at (oldRow, col) to (newRow, col),
         create None in the intermediate rows
@@ -318,6 +312,7 @@ class Board:
                     unit.position[0] = i
             else: #fill intermediate rows with None
                 self[i,col] = None
+
     def _doShiftDown(self, col, oldRow, newRow, size):
         """ Shift an object of size size, from (oldRow, col) DOWN to (newRow, col).
         For all objects which get displaced, put them in the same order in the
@@ -375,7 +370,7 @@ class Board:
                 for j in range(col, col+fat):
                     self[i,j] = piece
 
-        self.pieceAdded.callHandlers(piece)
+        self._updatedPieces.add(piece)
 
     def _deletePiece(self, piece):
         """Remove a piece from the board.
@@ -394,79 +389,80 @@ class Board:
         col = piece.position[1]
         self.grid[row:(row+tall), col:(col+fat)] = None
 
-        self._deletedPieces.add(piece)
+        self._updatedPieces.add(piece)
+
+    def _piecesInRegion(self, offset, regionSize):
+        """The set of pieces in the rectangle of the given size
+        at the given offset."""
+
+        row = offset[0]
+        col = offset[1]
+        return self.getPieces(range(row,(row+regionSize[0])),
+                              range(col,(col+regionSize[1])))
+
+    def _chargers(self, piece):
+        """The set of pieces in the given piece's charging region."""
+
+        return self._piecesInRegion(piece.position, piece.chargingRegion())
+
+    def _transformers(self, piece):
+        """The set of pieces in the given piece's transform region."""
+
+        return self._piecesInRegion(piece.position, piece.transformingRegion())
 
     def _createFormations(self):
-        ''' Turn things into charging units and transform things into walls
+        """Turn things into charging units and transform things into walls
 
-        Return True if did something '''
+       Return True if did something"""
         #piece.charge: returns a new charging unit
         #piece.transforming_region: returns a transforming region so
         #things can be turned into walls. format = height, width.
         #piece.multichargeable: True if multi allowed
         updated = False
         unitList = sorted(list(self.units), key = lambda piece: piece.position[0])
-        #make a charging list
-        chargePosition = []
-        #make a blacklist of guys not allowed to be marked as charging
-        notChargePosition = []
+        # a set of units to charge
+        chargingPieces = set()
+        # a blacklist of guys not allowed to be marked as charging
+        chargeBlacklist = set()
         for unit in unitList:
-            #check the size of charging region.
-            chargeSize = unit.chargingRegion()
-            if(chargeSize != (0,0)): #if chargable
-                #look at the relevant list of objects
-                obj = self[unit.position[0]:(unit.position[0]+chargeSize[0]), unit.position[1]:(unit.position[1]+chargeSize[1])]
-                obj = obj.flatten()
-                #if is all filled with something
-                if(not all(x is None for x in obj)):
-                    #if all filled with the appropriate thing
-                    if(all(unit.canCharge(x) for x in obj)):
-                        #mark this guy as charged
-                        chargePosition.append(unit.position)
-                        #check if unit blacklists anyone
-                        if(not unit.multichargeable()):
-                            for x in obj: #blacklist all obj
-                                notChargePosition.append(x.position)
+            if unit.chargingRegion() != (0,0): # if the unit is chargeable
+                # look at the pieces in the charging region
+                chargers = self._chargers(unit)
+                if chargers and all(unit.canCharge(x) for x in chargers):
+                    # then this unit can be charged
+                    chargingPieces.add(unit)
+                    # Check if this unit blacklists someone else.
+                    if not unit.multiChargeable():
+                        chargeBlacklist.update(chargers)
         #sort by columns now
         unitList = sorted(list(self.units), key = lambda piece: piece.position[1])
-        #make a wall-forming list (transforming list)
-        transformPosition = []
+
+        # a set of pieces to be transformed (into walls)
+        transformingPieces = set()
         for unit in unitList:
-            #check size of transforming region
-            transformSize = unit.transformingRegion()
-            if(transformSize !=(0,0)):
-                obj = self.grid[unit.position[0]:(unit.position[0]+chargeSize[0]), unit.position[1]:(unit.position[1]+chargeSize[1])]
-                obj = obj.flatten()
-                if(not all(x is None for x in obj)): #if all filled
-                    #if all filled with the appropriate thing
-                    if(all(unit.canTransform(x) for x in obj)):
-                        #mark everybody as transforming
-                        transformPosition.append(unit.position)
-                        for x in obj:
-                            transformPosition.append(x.position)
-        #resolve collision: remove blacklist and redundancies
-        transformPosition = list(set(transformPosition))
-        chargePosition = set(chargePosition)
-        notChargePosition = set(notChargePosition)
-        chargePosition = list(chargePosition.difference(notChargePosition))
-        if len(transformPosition) > 0 or len(chargePosition) > 0: #if need to update something
-            updated = True
-            #create formations
-            for pos in chargePosition:
-                #remove guys behind
-                unit = self[pos]
-                chargeSize = unit.chargingRegion()
-                for i in range(unit.position[0], unit.position[0]+chargeSize[0]):
-                    for j in range(unit.position[1], unit.position[1]+chargeSize[1]):
-                        self._deletePiece(self[i,j])
-                self._replacePiece(unit, unit.charge())
-            # create walls
-            # FIXME: what if something is in chargePosition and transformPosition?
-            for pos in transformPosition:
-                # delete the guy and turn him into a wall
-                unit = self[pos]
-                self._replacePiece(unit, unit.transform())
-        return updated
+            if unit.transformingRegion != (0, 0): # if the unit is transformable
+                transformers = self._transformers(unit)
+                if transformers and all(unit.canTransform(x) for x in transformers):
+                    # This unit can be transformed: mark it and _all_ the
+                    # transforming objects as transforming.
+                    transformingPieces.add(unit)
+                    transformingPieces.update(transformers)
+
+        chargingPieces.difference_update(chargeBlacklist)
+        # Create charging formations.
+        for unit in chargingPieces:
+            # Remove the pieces used to charge this piece.
+            # FIXME: this might not be right is this piece is multiChargeable.
+            for x in self._chargers(unit):
+                self._deletePiece(x)
+
+            self._replacePiece(unit, unit.charge())
+        # Create walls.
+        # FIXME: what if something is in chargePosition and transformPosition?
+        for unit in transformingPieces:
+            self._replacePiece(unit, unit.transform())
+
+        return bool(chargingPieces or transformingPieces)
 
     def _appearPiece(self, piece, pos):
         """Place a new piece in the given position."""
@@ -478,7 +474,7 @@ class Board:
         row = piece.position[0]
         col = piece.position[1]
         self.grid[row:(row+tall), col:(col+fat)] = piece
-        self._appearedPieces.add(piece)
+        self._updatedPieces.add(piece)
 
     def _replacePiece(self, old, new):
         """Replaces an old piece with a new one.

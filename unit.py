@@ -9,24 +9,25 @@ class Unit(Piece):
         Initializes a Unit.
         """
         Piece.__init__(self, description)
-        
+
         self.color = color
         self.chargeDescription = description['charge']
         self.imageBase = description['imageBase']
-        
+
     def chargingRegion(self):
         # The charging region of a unit is 2 squares deep, and its width
         # is the same as the unit width.
         return (2, self.size[1])
-        
+
     def canCharge(self, other):
         return self.color == other.color and other.size == (1, 1)
-        
+
     def canTransform(self, other):
+        return False # TODO: remove this once the Wall class is finished.
         return (self.color == other.color and
                 self.size == (1, 1) and
                 other.size == (1, 1))
-                
+
     def transformingRegion(self):
         if self.size == (1, 1):
             return (1, 2)
@@ -39,11 +40,11 @@ class Unit(Piece):
 
     def transform(self):
         pass # TODO
-        
+
     def charge(self):
         return ChargingUnit(self.chargeDescription, self.size,
                             self.position, self.color)
-                            
+
     def imageName(self):
         return self.imageBase + '.png'
 

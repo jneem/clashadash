@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import cocos
+import pyglet
 from piece_layer import PieceLayer
 from cocos.actions.interval_actions import MoveTo
 
 class BoardLayer(cocos.layer.Layer):
+    """The visual representation of a Board."""
+
     def __init__(self, board, pieceHeight, pieceWidth, reflect):
         """Construct a BoardLayer.
 
@@ -15,22 +18,30 @@ class BoardLayer(cocos.layer.Layer):
         """
 
         super(BoardLayer, self).__init__()
-        
+
         self.board = board
         self.pieceWidth = pieceWidth
         self.pieceHeight = pieceHeight
         self.pieceLayers = {}
         self.reflect = reflect
+
         self.slideTime = 0.2
-        
+        self.chargeTime = 0.2
+        self.pauseTime = 0.1
+        # While the board is normalizing, we have to go through several
+        # animation stages: sliding pieces, creating new pieces, sliding pieces
+        # again, etc.  The animationQueue has the list of animation stages
+        # that are yet to be animated.  Each entry is a set of (piece, position)
+        # pairs to be updated at that stage.
+        self.animationQueue = []
+        self.isAnimating = False
+
         # Add all the pieces that are currently on the board.
         for p in board.units:
             self.addPiece(p)
-            
+
         # Set up handlers to catch future changes to the board.
-        board.pieceAdded.addHandler(self.addPiece)
-        board.pieceMoved.addHandler(self.movePiece)
-        board.pieceDeleted.addHandler(self.deletePiece)
+        board.pieceUpdated.addHandler(self._updateNotification)
 
     def yAt(self, row):
         """The y coordinate of the given row."""
@@ -43,24 +54,78 @@ class BoardLayer(cocos.layer.Layer):
         else:
             return col * self.pieceHeight
 
-    def addPiece(self, piece):
+    def _updateNotification(self, pieces):
+        """Called whenever the board is updated."""
+
+        # We need to access the positions now because they might have changed
+        # by the time we get around to animating the motion.
+        piecePositions = [(p, tuple(p.position)) for p in pieces]
+        self.animationQueue.append(set(piecePositions))
+        if not self.isAnimating:
+            self.isAnimating = True
+            pyglet.clock.schedule_once(self._nextAnimationStage, 0)
+
+    # dt is ignored, but it's needed because of the API to
+    # pyglet.clock.schedule_once
+    def _nextAnimationStage(self, dt):
+        if self.animationQueue:
+            pieces = self.animationQueue.pop(0)
+            timeout = 0 # time (in s) for this stage to complete
+            for p in pieces:
+                timeout = max(timeout, self._updatePiece(*p))
+
+            pyglet.clock.schedule_once(self._nextAnimationStage, timeout + self.pauseTime)
+        else:
+            self.isAnimating = False
+            # TODO: emit an event?
+
+    def _updatePiece(self, piece, position):
+        """Start animating the given piece to the given position.
+
+        If the piece is not visible yet, add it. If position is None,
+        remove the piece from the board.
+
+        Returns the number of seconds needed for the animation.
+        """
+
+        if position is None:
+            self._deletePiece(piece)
+            return 0
+        elif piece in self.pieceLayers:
+            self._movePiece(piece, position)
+            return self.slideTime
+        else:
+            # TODO: differentiate between pieces sliding on and
+            # pieces appearing (because they were just charged)
+            self._appearPiece(piece, position)
+            return self.chargeTime
+
+    def _addPiece(self, piece):
         pieceLayer = PieceLayer(piece, self.pieceWidth, self.pieceHeight)
         self.pieceLayers[piece] = pieceLayer
         self.add(pieceLayer)
-        
+
         # For a better visual cue, place the piece at the top of its
         # column, then animate it into the correct position.
         pieceLayer.x = self.xAt(piece.position[1])
-        pieceLayer.y = self.yAt(board.height - 1)
+        pieceLayer.y = self.yAt(self.board.height - 1)
         self.movePiece(piece)
-        
-    def movePiece(self, piece):
+
+    def _appearPiece(self, piece, position):
+        # TODO: duplicate code from addPiece
+        pieceLayer = PieceLayer(piece, self.pieceWidth, self.pieceHeight)
+        self.pieceLayers[piece] = pieceLayer
+        self.add(pieceLayer)
+        pieceLayer.y = self.yAt(position[0])
+        pieceLayer.x = self.xAt(position[1])
+
+    def _movePiece(self, piece, position):
         pl = self.pieceLayers[piece]
-        x = self.xAt(piece.position[1])
-        y = self.yAt(piece.position[0])
+        y = self.yAt(position[0])
+        x = self.xAt(position[1])
         pl.do(MoveTo((x, y), self.slideTime))
 
-    def deletePiece(self, piece):
+    def _deletePiece(self, piece):
         pl = self.pieceLayers[piece]
         self.remove(pl)
 
