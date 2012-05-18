@@ -140,7 +140,8 @@ class Board:
         # we get called.
         self._piecePositions.clear()
         for u in self.units:
-            self._piecePositions[u] = u.position
+            # Copy the list, in case the original changes.
+            self._piecePositions[u] = list(u.position)
 
     def _shiftToEmpty(self):
         """Shifts all pieces to empty squares.
@@ -189,54 +190,54 @@ class Board:
         return updated
 
     def _shiftByPriority(self):
-       """Shift pieces by priority
-       Returns true if anything changed
-       """
-       #piece.slidePriority: integer. higher = should be more at the bottom.
-       #sort by (row,col) in increasing order, then by priority
-       #unitList = sorted(unitList, key = lambda piece: piece.slidePriority, reverse = True)
-       updated = False
-       nrow = self.grid.shape[0]
-       ncol = self.grid.shape[1]
-       #keep a fatty list
-       fatty = []
-       #sort the pieces on the board one column at a time by priority
-       for j in range(ncol): #for j column
-           unitCol = self.getPieces(range(nrow), [j])
-           if unitCol is None:
-               continue #has no unit
-           unitCol = list(unitCol) #turn to a list instead of a set
-           #make sure the list has the same order as the current list
-           #i.e: sort by increasing row
-           unitCol = sorted(unitCol, key = lambda piece: piece.position[0])
-           #sort by decreasing priority
-           unitCol = sorted(unitCol, key = lambda piece: piece.slidePriority, reverse = True)
-           #copy this over to the board
-           self[range(nrow), j] = None
-           i = 0
-           for unit in unitCol:
-               self[range(i, i+unit.size[0]), j] = unit
-               i += unit.size[0]
-           #update unit coordinates
-           #if their origin are in the same column: THEN update
-           for i in range(nrow):
-               unit = self[i,j]
-               if unit is not None:
-                   if unit.position[1] == j:
-                       if unit.position[0] != i:
-                           updated = True
-                           unit.position = [i,j]
-                       if unit.size == (2,2):
-                           fatty.append(unit)
-           #check for fatty disalignment
-           trynum = 0
-           while self._doAlignFatty(fatty):
-               updated = True
-               trynum = trynum + 1
-               print "fatty aligning attempt number " + str(trynum)
-               if(trynum > 100):
-                   raise MemoryError("attempt to realign fatty over 100 times")
-       return updated
+        """Shift pieces by priority.
+
+        Return true if anything changed.
+        """
+        #piece.slidePriority: integer. higher = should be more at the bottom.
+        #sort by (row,col) in increasing order, then by priority
+        #unitList = sorted(unitList, key = lambda piece: piece.slidePriority, reverse = True)
+        updated = False
+        nrow = self.grid.shape[0]
+        ncol = self.grid.shape[1]
+        #keep a fatty list
+        fatty = []
+        #sort the pieces on the board one column at a time by priority
+        for j in range(ncol): #for j column
+            unitCol = self.getPieces(range(nrow), [j])
+            if not unitCol:
+                continue #has no unit
+            unitCol = list(unitCol) #turn to a list instead of a set
+            #make sure the list has the same order as the current list
+            #i.e: sort by increasing row
+            unitCol = sorted(unitCol, key = lambda piece: piece.position[0])
+            #sort by decreasing priority
+            unitCol = sorted(unitCol, key = lambda piece: piece.slidePriority, reverse = True)
+            #copy this over to the board
+            self[range(nrow), j] = None
+            i = 0
+            for unit in unitCol:
+                self[range(i, i+unit.size[0]), j] = unit
+
+                # Check if the unit has moved.
+                if i != unit.position[0]:
+                    updated = True
+                    unit.position[0] = i
+
+                    if unit.size == (2, 2):
+                        fatty.append(unit)
+
+                i += unit.size[0]
+
+            #check for fatty disalignment
+            trynum = 0
+            while self._doAlignFatty(fatty):
+                updated = True
+                trynum = trynum + 1
+                print "fatty aligning attempt number " + str(trynum)
+                if(trynum > 100):
+                    raise MemoryError("attempt to realign fatty over 100 times")
+        return updated
 
     def _doAlignFatty(self, fatList):
         """ correct guys in the fatList if unaligned
@@ -400,15 +401,45 @@ class Board:
         return self.getPieces(range(row,(row+regionSize[0])),
                               range(col,(col+regionSize[1])))
 
+    def _regionFull(self, offset, regionSize):
+        """Checks whether the given region is full of pieces."""
+        row = offset[0]
+        col = offset[1]
+        return (row + regionSize[0] <= self.height and
+                 col + regionSize[1] <= self.width and
+                 None not in self.grid[row:(row+regionSize[0]),
+                                       col:(col+regionSize[1])].flatten().tolist())
+                # I'm not sure why flatten().tolist() is necessary, but it seems
+                # like "None in array([None])" returns false, while None in [None]
+                # returns true.
+
     def _chargers(self, piece):
         """The set of pieces in the given piece's charging region."""
 
-        return self._piecesInRegion(piece.position, piece.chargingRegion())
+        # Add piece.size[0] because the charge region starts from the square
+        # behind the piece.
+        chargePosition = (piece.position[0] + piece.size[0], piece.position[1])
+        return self._piecesInRegion(chargePosition, piece.chargingRegion())
+
+    def _chargeFull(self, piece):
+        """Checks whether the piece's charging region is full."""
+
+        chargePosition = (piece.position[0] + piece.size[0], piece.position[1])
+        return self._regionFull(chargePosition, piece.chargingRegion())
 
     def _transformers(self, piece):
         """The set of pieces in the given piece's transform region."""
 
-        return self._piecesInRegion(piece.position, piece.transformingRegion())
+        # Add piece.size[1] because the charge region starts from the square
+        # to the right of the piece.
+        transformPosition = (piece.position[0], piece.position[1] + piece.size[1])
+        return self._piecesInRegion(transformPosition, piece.transformingRegion())
+
+    def _transformFull(self, piece):
+        """Checks whether the piece's transform region is full."""
+
+        transformPosition = (piece.position[0], piece.position[1] + piece.size[1])
+        return self._regionFull(transformPosition, piece.transformingRegion())
 
     def _createFormations(self):
         """Create walls and charging formations.
@@ -424,7 +455,7 @@ class Board:
             # Look at the pieces in the charging region.  If there are some,
             # and they are all good then the unit gets charged.
             chargers = self._chargers(unit)
-            if chargers and all(unit.canCharge(x) for x in chargers):
+            if chargers and self._chargeFull(unit) and all(unit.canCharge(x) for x in chargers):
                 # then this unit can be charged
                 chargingPieces.add(unit)
                 # Check if this unit blacklists someone else.
@@ -437,7 +468,8 @@ class Board:
         transformingPieces = set()
         for unit in unitList:
             transformers = self._transformers(unit)
-            if transformers and all(unit.canTransform(x) for x in transformers):
+            if (transformers and self._transformFull(unit) and
+                all(unit.canTransform(x) for x in transformers)):
                 # This unit can be transformed: mark it and _all_ the
                 # transforming objects as transforming.
                 transformingPieces.add(unit)
