@@ -11,7 +11,7 @@ class BoardLayer(cocos.layer.Layer):
     def __init__(self, board, pieceHeight, pieceWidth, reflect):
         """Construct a BoardLayer.
 
-        board is the instance of Board that we visually represent
+        board is the instance of Board that we visually represent.
         pieceHeight and pieceWidth are dimensions of the pieces (in pixels)
         reflect is False if the board should be displayed with row 0 at
             the top.
