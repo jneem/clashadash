@@ -128,4 +128,3 @@ class BoardLayer(cocos.layer.Layer):
     def _deletePiece(self, piece):
         pl = self.pieceLayers[piece]
         self.remove(pl)
-
