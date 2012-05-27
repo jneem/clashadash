@@ -377,6 +377,12 @@ class Board:
 
         self.pieceAdded.callHandlers(piece)
 
+    def deletePiece(self, piece):
+        """ Delete a piece and then normalize """
+        self._deletePiece(piece)
+        self.normalize()
+        pass
+
     def _deletePiece(self, piece):
         """Remove a piece from the board.
 
@@ -485,7 +491,14 @@ class Board:
 
         The pieces must be the same size, or a ValueError is raised.
         """
-
         pos = old.position
         self._deletePiece(old)
         self._appearPiece(new, pos)
+        
+    def colToAdd(self, piece):
+        """ Return col if the piece can be added
+        without creating links/walls. Return None if cannot be added anywhere.
+        """
+        #TODO
+        return None
+        

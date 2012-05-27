@@ -1,9 +1,10 @@
 from wall import Wall
 
-class Player(object):
+class PlayerDescription(object):
     def __init__(self, description):
         """
-        Initializes a Player.
+        Read in XML file. To be used in the player selection scene. 
+        Returns a player object
         """
 
         self.name = description['name']
