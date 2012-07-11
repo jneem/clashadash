@@ -2,7 +2,7 @@
 """
 Created on Thu May 17 19:02:17 2012
 
-Display the selector holder at the bottom and a 
+Display the selector holder at the bottom and a
 transparent colored mask on the selected piece
 
 @author: tran
@@ -19,17 +19,17 @@ class SelectorLayer(cocos.layer.Layer):
         self.board = board
         self.currentCol = 0
         self.currentRow = board.height - 1
-        
+
         #the holder sprite
         self.setupHolder()
         #TODO: put this at the bottom of the board. align with column
-        
+
         #the selector square sprite
         self.setupSquare()
-        
+
         #status: holding a piece or not
         self.holding = False
-        
+
         #status: as active display or not
         self.active = False
 
@@ -38,42 +38,42 @@ class SelectorLayer(cocos.layer.Layer):
         holderSprite.image_anchor_x = 0
         holderSprite.image_anchor_y = 0
 
-        # Scale the sprite to the correct size. Default = 20 x 10. 
+        # Scale the sprite to the correct size. Default = 20 x 10.
         rect = holderSprite.get_rect()
         scale = min(float(20) / rect.width,
                     float(10) / rect.height)
         holderSprite.scale = scale
-        
+
         self.add(holderSprite)
-    
+
     def setupSquare(self):
         squareSprite = Sprite() #TODO: imagename for square
         squareSprite.image_anchor_x = 0
         squareSprite.image_anchor_y = 0
-        
-        #Scale. Some bogus value for now. 
-        rect = squareSprite.get_rect() 
+
+        #Scale. Some bogus value for now.
+        rect = squareSprite.get_rect()
         scale = min(float(20) / rect.width,
                     float(10) / rect.height)
         squareSprite.scale = scale
-        
+
         self.add(squareSprite)
-    
+
     def toggleActive(self):
         self.active = not self.active
-    
-    def rescaleSquare(self, scale): 
-        """ Scale squareSprite depending on size of the piece selected """ 
+
+    def rescaleSquare(self, scale):
+        """ Scale squareSprite depending on size of the piece selected """
         #TODO
         pass
-    
+
     def updateSquarePos(self):
-        """ move squareSprite to the current position""" 
+        """ move squareSprite to the current position"""
         #TODO
         pass
-    
+
     def moveHolder(self, direction):
-        """ Move holder left,right,up or down, depending on input""" 
+        """ Move holder left,right,up or down, depending on input"""
         if direction is "left": #move to left
             if self.currentCol > 0:
                 self.currentCol -= 1
@@ -92,30 +92,30 @@ class SelectorLayer(cocos.layer.Layer):
             if self.currentRow > 0:
                 self.currentRow -= 1
                 self.updateSquarePos()
-    
+
     def pickOrDrop(self):
-        """Pick up or drop the currently held piece """
+        """Pick up or drop the currently held piece.
+        Return true if did something """
         boardHeight = self.board.boardHeight()
         if holdPiece:
             #check if can drop. #TOFIX: need to think about dropping fatties.
-            #Maybe the board should handle dropping. 
+            #Maybe the board should handle dropping.
             if boardHeight[currentCol] < self.board.height:
                 #TODO: drop piece
-                self.gameLayer.selectorDidSometing()
+                return True
             else:
                 #TODO: trying to drop on a full column. make grumpy nosie
                 pass
         else: #not holding piece. Want to pick up
             if boardHeight[currentCol] > 0:
-                #TODO: pick up piece. Need to think about picking up walls... 
-                self.gameLayer.selectorDidSometing()
+                #TODO: pick up piece. Need to think about picking up walls...
+                return True
             else:
-                #TODO: trying to pick up an empty column. Grumpy noise. 
+                #TODO: trying to pick up an empty column. Grumpy noise.
                 pass
-    
 
-            
-            
-    
-            
-        
+
+
+
+
+

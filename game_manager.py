@@ -7,58 +7,101 @@ Created on Thu May 17 17:50:36 2012
 from event_hook import EventHook
 
 class GameManager:
-    """ manage whose turn, who wins """ 
-    def __init__(self, player1, player2):
-        self.player1 = player1
-        self.player2 = player2
-        self.playerIsOne = True #this means player1 goes first
-        self.currentPlayer = player1
-        
-        #event handlers
-        self.player1.doneTurn.addHandler(self.updateTurn)
-        self.player2.doneTurn.addHandler(self.updateTurn)
-        
+    """Runs the game.
+
+    Keeps track of whose turn it is and how many moves they have left.
+    Also manages the summoning of pieces.
+
+    Events:
+        switchTurn: triggered whenever a player ends their turn.
+    """
+
+    def __init__(self, player1, board1, player2, board2):
+        self._currentPlayerBoard = (player1, board1)
+        self._otherPlayerBoard = (player2, board2)
+
         #event emitters
         self.switchTurn = EventHook()
-        
-        
-    def upddateCurrentPlayer(self):
-        """ Return the current player """ 
-        if self.playerIsOne:
-            self.currentPlayer = self.player1
-        else:
-            self.currentPlayer = self.player2
-    
-    def updateTurn(self):
-        """ Toggle who current player is. 
-        Call game_layer to make the right display """
-        self.currentPlayer.endTurn() 
-        
-        #switch player
-        self.playerIsOne = not self.playerIsOne
-        self.updateCurentPlayer()
+
+    @property
+    def currentPlayer(self):
+        return self._currentPlayerBoard[0]
+
+    @property
+    def currentBoard(self):
+        return self._currentPlayerBoard[1]
+
+    def movePiece(self, fromPosition, toColumn):
+        """Puts the piece at the given position into the given column.
+
+       Also recalculates the number of turns that the current
+       player has left, and switches players if necessary.
+       Returns True if the move succeeded, and False if it was
+       an illegal move.
+       """
+
+        # TODO: check if the piece can be picked up.
+        # (so far, we only check if the putting down is legal)
+        piece = self.currentBoard[*fromPosition]
+        if piece == None:
+            return False
+        if self.currentBoard.canAddPiece(piece, toColumn):
+            self.currentBoard.movePiece(piece, toColumn)
+            # TODO: find how many links were made.
+            self._updateMoves()
+
+    def deletePiece(self, position):
+        """Deletes the piece at the given position.
+
+
+       Also recalculates the number of turns that the current
+       player has left, and switches players if necessary.
+       Returns True if the delete succeeded, and False if it was
+       illegal.
+       """
+
+        pass
+
+    def canPickUp(self, position):
+        """Checks if the current player can pick up a given piece."""
+
+        pass
+
+    def _updateTurn(self):
+        """Toggle who the current player is.
+
+       Triggers the switchTurn event."""
+
+        self.currentPlayer.endTurn()
+
+        tmp = self._currentPlayerBoard
+        self._currentPlayerBoard = self._otherPlayerBoard
+        self._otherPlayerBoard = tmp
+
         self.switchTurn.callHandlers()
-        
-    def updateMove(self):
-        """ Current player just moved. Update move number
-        and decide if should end turn """
+
+    def _updateMoves(self):
+        """Adds one to the number of used moves, and ends the turn
+        if necessary.
+        """
+
         self.currentPlayer.usedMoves += 1
         if self.currentPlayer.usedMoves == self.currentPlayer.maxMoves:
             self.updateTurn()
-        
-    def callPieces(self, currentBoard):
-        """ Current player wants to call some pieces
-        Handles the logic. 
+
+    def callPieces(self):
+        """Current player wants to call some pieces.
+
         Generate units one at a time, and check that they can be fit on board.
-        """        
+        """
         pieceLeft = self.currentPlayer.effTotal
         while pieceLeft > 0:
             unit = self.currentPlayer.getRandomUnit()
-            col = currentBoard.colToAdd(unit)
+            col = self.currentBoard.colToAdd(unit)
             if col is not None:
-                currentBoard.addPiece(unit, col)
+                self.currentBoard.addPiece(unit, col)
                 pieceLeft = pieceLeft - 1
+
         if self.currentPlayer.effTotal > 0:
-            self.updateMove()
-    
-            
+            self._updateMoves()
+

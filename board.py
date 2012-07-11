@@ -80,11 +80,13 @@ class Board:
         self.grid[i,j] = unit
 
     def boardHeight(self):
-        ''' returns an array of the max height in each column'''
+        """Returns the first empty row in each column.
+
+        The return value is a numpy array, with one entry per column."""
         heightA = np.zeros(self.grid.shape[1], dtype = 'int8')
-        for j in range(self.grid.shape[1]): #for each column
-            for i in reversed(range(self.grid.shape[0])): #for each reverse row
-                if(self[i,j] != None):
+        for j in range(self.grid.shape[1]):
+            for i in reversed(range(self.grid.shape[0])):
+                if self[i,j] != None:
                     heightA[j] = i+1
                     break
         return heightA
@@ -343,41 +345,98 @@ class Board:
             if unit.position[1] == col:
                 unit.position[0] = i
 
-    def addPiece(self, piece, col):
-        '''Add a piece to the board at the given column.
+    def _rowToAdd(self, piece, col):
+        """Returns the row at which the piece will be added."""
 
-        Raise an IndexError if the piece doesn't fit on the board.
-        Note that this function does not normalize the board
-        automatically.
-        '''
-        #check piece size
-        #for each column, find the nearest empty row
-        #if can add: point piece to board, point board to piece
-        #if not: throw IndexError
+        # If the piece belongs to the board, remove it from the
+        # grid first, just in case it's already occupying the column
+        # that we're adding it to.
+        if piece in self.units:
+            self._deleteFromGrid(piece)
+        vacantRows = self.boardHeight()
+        row = int(max(vacantRows[range(col, col+fat)]))
+        if piece in self.units:
+            self._addToGrid(piece)
+
+        return row
+
+    def canAddPiece(self, piece, col):
+        """Checks whether the given piece fits in the given column."""
+
         tall = piece.size[0]
         fat = piece.size[1]
-        if col+fat > self.grid.shape[1]: #flag if piece is too fat
-            raise IndexError("Trying to add piece outside of board")
-        #check height of current board
-        colHeight = self.boardHeight()
-        maxHeight = int(max(colHeight[range(col, col+fat)])) #maximum height (row) can add
-        if maxHeight+tall-1 > self.grid.shape[0]: #flag if piece is too tall
-            raise IndexError("Trying to add piece outside of board")
-        else: #add piece to board
-            self.units.add(piece)
-            piece.position = [maxHeight, col]
-            #update board positions
-            for i in range(maxHeight, maxHeight+tall):
-                for j in range(col, col+fat):
-                    self[i,j] = piece
+        row = self._rowToAdd(piece, col)
 
+        return row + tall <= self.grid.shape[0] and \
+            col + fat <= self.grid.shape[1]
+
+    def addPiece(self, piece, col):
+        """Add a piece to the given column.
+
+        Raise an IndexError if the piece doesn't fit at the
+        given position.
+        Note that this function does not normalize the board
+        automatically.
+        """
+
+        if not self.canAddPiece(piece, col):
+            raise IndexError("Trying to add piece outside of board")
+
+        tall = piece.size[0]
+        fat = piece.size[1]
+        row = self._rowToAdd(piece, col)
+        piece.position = [row, col]
+        self._addToGrid(piece)
+        self._units.add(piece)
         self._updatedPieces.add(piece)
 
     def deletePiece(self, piece):
-        """ Delete a piece and then normalize """
+        """Delete a piece and then normalize."""
         self._deletePiece(piece)
         self.normalize()
-        pass
+
+    def movePiece(self, piece, toColumn):
+        """Moves a piece to a new column, then normalizes.
+
+        Raises an IndexError if the move was illegal."""
+
+        if self.canAddPiece(piece, toColumn):
+            self._deleteFromGrid(piece)
+            self.addPiece(piece, toColumn)
+            self.normalize()
+        else:
+            raise IndexError("Trying to add piece outside of board")
+
+    def _deleteFromGrid(self, piece):
+        """At the piece's current position, set the grid to None.
+
+        Raises ValueError if the grid and the piece don't
+        agree on where the piece is."""
+
+        tall = piece.size[0]
+        fat = piece.size[1]
+        row = piece.position[0]
+        col = piece.position[1]
+
+        if any(grid[row:(row+tall), col:(col+fat)] != piece):
+            raise ValueError("Piece and board disagree on position")
+
+        self.grid[row:(row+tall), col:(col+fat)] = None
+
+    def _addToGrid(self, piece):
+        """Update the grid according to the piece's current position.
+
+        Raises ValueError if the position is already occupied."""
+
+        tall = piece.size[0]
+        fat = piece.size[1]
+        row = piece.position[0]
+        col = piece.position[1]
+
+        if any(grid[row:(row+tall), col:(col+fat)] != None):
+            raise ValueError("Position is already occupied")
+
+        self.grid[row:(row+tall), col:(col+fat)] = piece
 
     def _deletePiece(self, piece):
         """Remove a piece from the board.
@@ -390,12 +449,7 @@ class Board:
             raise ValueError("Tried to remove a non-existent piece")
 
         self.units.remove(piece)
-        tall = piece.size[0]
-        fat = piece.size[1]
-        row = piece.position[0]
-        col = piece.position[1]
-        self.grid[row:(row+tall), col:(col+fat)] = None
-
+        self._deleteFromGrid(piece)
         self._updatedPieces.add(piece)
 
     def _piecesInRegion(self, offset, regionSize):
@@ -501,12 +555,7 @@ class Board:
         """Place a new piece in the given position."""
 
         self.units.add(piece)
-        piece.position = pos
-        tall = piece.size[0]
-        fat = piece.size[1]
-        row = piece.position[0]
-        col = piece.position[1]
-        self.grid[row:(row+tall), col:(col+fat)] = piece
+        self._addToGrid(piece)
         self._updatedPieces.add(piece)
 
     def _replacePiece(self, old, new):
@@ -517,11 +566,11 @@ class Board:
         pos = old.position
         self._deletePiece(old)
         self._appearPiece(new, pos)
-        
+
     def colToAdd(self, piece):
         """ Return col if the piece can be added
         without creating links/walls. Return None if cannot be added anywhere.
         """
         #TODO
         return None
-        
+
