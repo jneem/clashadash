@@ -97,17 +97,17 @@ class SelectorLayer(cocos.layer.Layer):
         """Pick up or drop the currently held piece.
         Return true if did something """
         boardHeight = self.board.boardHeight()
-        if holdPiece:
+        if self.holding:
             #check if can drop. #TOFIX: need to think about dropping fatties.
             #Maybe the board should handle dropping.
-            if boardHeight[currentCol] < self.board.height:
+            if boardHeight[self.currentCol] < self.board.height:
                 #TODO: drop piece
                 return True
             else:
                 #TODO: trying to drop on a full column. make grumpy nosie
                 pass
         else: #not holding piece. Want to pick up
-            if boardHeight[currentCol] > 0:
+            if boardHeight[self.currentCol] > 0:
                 #TODO: pick up piece. Need to think about picking up walls...
                 return True
             else:
