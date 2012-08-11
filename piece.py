@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from ghostPiece import ghostPiece
+
 class Piece(object):
     """A piece is something that lives on the board.
 
@@ -25,6 +27,10 @@ class Piece(object):
                         slidePriority is positive, the piece will try go to
                         the front of the board, pushing aside other pieces of
                         a smaller priority.
+                    multiChargeable:
+                        whether pieces used to charge this piece can also be 
+                        charged at that turn. NOTE: this requires the piece and
+                        its charged form have the same size. 
         """
 
         self.name = description['name']
@@ -122,3 +128,7 @@ class Piece(object):
 
     def multiChargeable(self):
         return self._multiChargeable
+
+    def makeGhost(self):
+        """ Return a ghost copy of self """ 
+        return ghostPiece(self.description, self)

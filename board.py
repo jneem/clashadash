@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+#from ghostPiece import ghostPiece
 from event_hook import EventHook
 
 class Board:
@@ -23,7 +24,7 @@ class Board:
         self.height = height
         self.width = width
 
-        # Event handlers for that will be triggered each time a piece is
+        # Event handlers that will be triggered each time a piece is
         # changed (added, removed, or moved). The callbacks should take
         # one unnamed argument, which is a set of pieces to which they apply.
         self.pieceUpdated = EventHook()
@@ -35,6 +36,18 @@ class Board:
         # Keeps track of piece positions so that we can detect if they
         # have changed.
         self._piecePositions = {}
+        
+        # Event handler that will be triggered each time
+        # when a formation or a transformation is made.
+        self.formationMade = EventHook()
+        
+        # Event handler that will be triggered when a link is made
+        # TODO. NOT IMPLEMENTED
+        self.linkMade = EventHook()
+        
+        # Event handler that will be triggered when fusion is made
+        # TODO. NOT IMPLEMENTED
+        self.fusionMade = EventHook()
 
     def __getitem__(self, item):
         '''Return the corresponding sub-table of grid.
@@ -346,7 +359,10 @@ class Board:
                 unit.position[0] = i
 
     def _rowToAdd(self, piece, col):
-        """Returns the row at which the piece will be added."""
+        """Returns the row at which the piece will be added.
+        If the returned value is >= self.height, the row position is 
+        essentially invalid.
+        """
 
         # If the piece belongs to the board, remove it from the
         # grid first, just in case it's already occupying the column
@@ -356,9 +372,6 @@ class Board:
             self._deleteFromGrid(piece)
         vacantRows = self.boardHeight()
         row = int(max(vacantRows[range(col, col+fat)]))
-        if piece in self.units:
-            self._addToGrid(piece)
-
         return row
 
     def canAddPiece(self, piece, col):
@@ -382,9 +395,7 @@ class Board:
 
         if not self.canAddPiece(piece, col):
             raise IndexError("Trying to add piece outside of board")
-
-        tall = piece.size[0]
-        fat = piece.size[1]
+            
         row = self._rowToAdd(piece, col)
         piece.position = [row, col]
         self._addToGrid(piece)
@@ -516,8 +527,7 @@ class Board:
         unitList = sorted(list(self.units), key = lambda piece: piece.position[0])
         # a set of units to charge
         chargingPieces = set()
-        # a blacklist of guys not allowed to be marked as charging
-        chargeBlacklist = set()
+        
         for unit in unitList:
             # Look at the pieces in the charging region.  If there are some,
             # and they are all good then the unit gets charged.
@@ -525,9 +535,6 @@ class Board:
             if chargers and self._chargeFull(unit) and all(unit.canCharge(x) for x in chargers):
                 # then this unit can be charged
                 chargingPieces.add(unit)
-                # Check if this unit blacklists someone else.
-                if not unit.multiChargeable():
-                    chargeBlacklist.update(chargers)
 
         #sort by columns now
         unitList = sorted(list(self.units), key = lambda piece: piece.position[1])
@@ -535,49 +542,108 @@ class Board:
         transformingPieces = set()
         for unit in unitList:
             transformers = self._transformers(unit)
-            if (transformers and self._transformFull(unit) and
-                all(unit.canTransform(x) for x in transformers)):
-                # This unit can be transformed: mark it and _all_ the
-                # transforming objects as transforming.
+            #if this unit can be transformed
+            if self._transformFull(unit) and all(unit.canTransform(x) for x in transformers):
+                #if its friends has not been marked as transformed
+                if transformingPieces.isdisjoint(set(transformers)):
+                    #call handlers
+                    self.formationMade.callHandlers()
+                #mark the unit and _all_ the transforming objects as transforming
                 transformingPieces.add(unit)
                 transformingPieces.update(transformers)
 
-        chargingPieces.difference_update(chargeBlacklist)
-        # Create charging formations.
+        # Create charging formations. Resolve multiChargeable conflicts here.
+        #sort chargingPieces by column to avoid update order problems
+        chargingPieces = set(sorted(list(chargingPieces), key = lambda piece: piece.position[1]))
         for unit in chargingPieces:
             # Remove the pieces used to charge this piece.
-            # FIXME: this might not be right is this piece is multiChargeable.
-            for x in self._chargers(unit):
-                self._deletePiece(x)
-
-            self._replacePiece(unit, unit.charge())
+            # Unless if it is also in the transforming OR the charging list
+            # AND the unit in front is multichargeable
+            if unit._multiChargeable is True:
+                for x in self._chargers(unit):
+                    if x not in (chargingPieces or transformingPieces):
+                        self._deletePiece(x)
+                    else:
+                        self._deleteFromGrid(x)
+            else: #unit not multiChargeable
+                for x in self._chargers(unit):
+                    if x in chargingPieces: #disable charging
+                        chargingPieces.remove(x)
+                    if x in transformingPieces:
+                        self._deleteFromGrid(x)
+                    else:
+                        self._deletePiece(x)
+           
+            self._replacePiece(unit, unit.charge()) 
+            #notify listeners that a charging formation has been formed
+            self.formationMade.callHandlers()                        
+            
         # Create walls.
-        # FIXME: what if something is in chargePosition and transformPosition?
         for unit in transformingPieces:
-            self._replacePiece(unit, unit.transform())
-
+            #if unit is existing on board
+            if self._existPiece(unit):
+                self._replacePiece(unit, unit.transform())
+            else: 
+                row = self._rowToAdd(unit, unit.position[1])
+                #if unit can be added back to the same column then add.
+                if row < self.height:
+                    pos = [row, unit.position[1]]
+                    self._appearPiece(unit, pos)
+                
         return bool(chargingPieces or transformingPieces)
+
+    def _existPiece(self, piece):
+        """ Return True if piece is existing on board at its stored position
+        
+        Only check the head square. 
+        """
+        if self.grid[piece.position] is piece:
+            return True
+        else:
+            return False
 
     def _appearPiece(self, piece, pos):
         """Place a new piece in the given position."""
-
-        self.units.add(piece)
         self._addToGrid(piece)
+        self.units.add(piece)        
         self._updatedPieces.add(piece)
 
     def _replacePiece(self, old, new):
-        """Replaces an old piece with a new one.
-
-        The pieces must be the same size, or a ValueError is raised.
-        """
+        """Replaces an old piece with a new one."""
         pos = old.position
         self._deletePiece(old)
         self._appearPiece(new, pos)
 
     def colToAdd(self, piece):
-        """ Return col if the piece can be added
-        without creating links/walls. Return None if cannot be added anywhere.
+        """ Return the column value if the piece can be added
+        without creating formations/walls. Return None if cannot be added anywhere.
         """
-        #TODO
+        #choose a random ordering of the columns
+        columnList = list(np.random.permutation(self.width))
+        for col in columnList:
+            #if piece can be added to column col
+            if self.canAddPiece(piece, col):
+                #make a fictious board with ghost pieces.
+                boardCopy = self.ghostBoard()
+                #make a ghost of the current piece
+                ghost = piece.makeGhost()
+                #add ghost to boardCopy
+                boardCopy.addPiece(ghost, col)
+                #if no formations is created
+                if not boardCopy._createFormations():
+                    return col
         return None
 
+    def ghostBoard(self):
+        """ Return a hard copy of board with ghost pieces """ 
+        boardCopy = Board(self.height, self.width)
+        for i in xrange(self.height):
+            for j in xrange(self.width):
+                if self.grid[i,j] is not None:
+                    piece = self.grid[i,j]
+                    ghost = piece.makeGhost()
+                    boardCopy.grid = ghost
+                    boardCopy.units.add(ghost)
+        return boardCopy
+
+        
