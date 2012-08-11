@@ -3,7 +3,7 @@
 Created on Thu May 17 19:02:17 2012
 
 Display the selector holder at the bottom and a
-transparent colored mask on the selected piece
+transparent colored mask on the selected piece.
 
 @author: tran
 """
@@ -14,108 +14,136 @@ from cocos.layer.util_layers import ColorLayer
 from event_hook import EventHook
 
 class SelectorLayer(cocos.layer.Layer):
-    def __init__(self, board):
+    def __init__(self, board, pieceHeight, pieceWidth, height, reflect):
+        """Creates a SelectorLayer.
+
+        board -- an instance of class Board.
+        pieceWidth -- the width (in pixels) of a square on the board.
+        pieceHeight -- the height (in pixels) of a square on the board.
+        height -- the height (in pixels) of the entire SelectorLayer.
+            This should be at least the height (in pixels) of the board.
+        reflect -- if False, row 0 will be displayed at the top.
+
+        """
+
         super(SelectorLayer, self).__init__()
         self.board = board
+        self.pieceWidth = pieceWidth
+        self.pieceHeight = pieceHeight
+        self.height = height
+        self.reflect = reflect
         self.currentCol = 0
         self.currentRow = board.height - 1
 
-        #the holder sprite
-        self.setupHolder()
-        #TODO: put this at the bottom of the board. align with column
+        self._holder = None
+        self._setupHolder()
 
-        #the selector square sprite
-        self.setupSquare()
+        self._square = None
+        self._updateSquare()
 
-        #status: holding a piece or not
-        self.holding = False
+        # The piece that we are currently holding.
+        self._heldPiece = None
 
-        #status: as active display or not
+        # True if we are currently the active player.
         self.active = False
 
-    def setupHolder(self):
-        holderSprite = Sprite() #TODO: imagename for the holder
-        holderSprite.image_anchor_x = 0
-        holderSprite.image_anchor_y = 0
+    @property
+    def heldPiece(self):
+        return self._heldPiece
 
-        # Scale the sprite to the correct size. Default = 20 x 10.
-        rect = holderSprite.get_rect()
-        scale = min(float(20) / rect.width,
-                    float(10) / rect.height)
-        holderSprite.scale = scale
+    def dropPiece(self):
+        self._heldPiece = None
+        # TODO: visual feedback
 
-        self.add(holderSprite)
-
-    def setupSquare(self):
-        squareSprite = Sprite() #TODO: imagename for square
-        squareSprite.image_anchor_x = 0
-        squareSprite.image_anchor_y = 0
-
-        #Scale. Some bogus value for now.
-        rect = squareSprite.get_rect()
-        scale = min(float(20) / rect.width,
-                    float(10) / rect.height)
-        squareSprite.scale = scale
-
-        self.add(squareSprite)
+    # The holder is an icon that moves horizontally along the
+    # top of the board to show which column is currently selected.
+    def _setupHolder(self):
+        holder = ColorLayer(255, 255, 255, 168,
+                width=self.pieceWidth, height=self.pieceHeight/2)
+        self.add(holder)
+        self._holder = holder
+        self._updateHolder()
 
     def toggleActive(self):
         self.active = not self.active
 
-    def rescaleSquare(self, scale):
-        """ Scale squareSprite depending on size of the piece selected """
-        #TODO
-        pass
+    def yAt(self, row):
+        """The y coordinate of the bottom edge of the given row."""
+        if self.reflect:
+            return row * self.pieceHeight
+        else:
+            return self.height - (row + 1) * self.pieceHeight
 
-    def updateSquarePos(self):
-        """ move squareSprite to the current position"""
-        #TODO
-        pass
+    def xAt(self, col):
+        """The x coordinate of the left edge of the given column."""
+        return col * self.pieceWidth
+
+    def _updateSquare(self):
+        """Update the position and size of the square layer."""
+
+        # The size of the square depends on how large the selected
+        # piece is.  Updating the size requires creating a new
+        # ColorLayer; technically, we only need to do so each time the
+        # size changes, but it's easier for now to just do it every
+        # time we update.
+        if self._square is not None:
+            self.remove(self._square)
+
+        piece = self.board[self.currentRow, self.currentCol]
+        fat = 1
+        tall = 1
+        row = self.currentRow
+        col = self.currentCol
+        if piece is not None:
+            tall, fat = piece.size
+            row, col = piece.position
+
+        width = fat * self.pieceWidth
+        height = tall * self.pieceHeight
+        self._square = ColorLayer(255, 255, 255, 168,
+                width=width, height=height)
+        self.add(self._square)
+        self._square.position = (self.xAt(col), self.yAt(row))
+
+    def _updateHolder(self):
+        """Update the position of the holder layer."""
+
+        y = self.yAt(self.board.height)
+        if self.reflect:
+            y += self.pieceHeight/2
+        x = self.xAt(self.currentCol)
+        self._holder.position = (x, y)
 
     def moveHolder(self, direction):
-        """ Move holder left,right,up or down, depending on input"""
-        if direction is "left": #move to left
+        """Move holder left, right, up or down."""
+
+        if self.reflect:
+            if direction == "up":
+                direction = "down"
+            elif direction == "down":
+                direction = "up"
+
+        if direction == "left":
             if self.currentCol > 0:
                 self.currentCol -= 1
-                #TODO: move holderSprite one column to left
-                #TODO: move squareSprite onto appropriate pos
-        if direction is "right": #move to right
-            if self.currentCol < self.board.width:
+        elif direction == "right":
+            if self.currentCol < self.board.width - 1:
                 self.currentCol += 1
-                #TODO: move holderSprite one column to right
-                #TODO: move squareSprite onto appropriate pos
-        if direction is "up": #towards the player
-            if self.currentRow < self.board.maxHeight[self.currentCol]:
-                self.currentRow += 1
-                self.updateSquarePos()
-        if direction is "down": #towards the middle of board
+        elif direction == "down":
             if self.currentRow > 0:
                 self.currentRow -= 1
-                self.updateSquarePos()
+        elif direction == "up":
+            if self.currentRow < self.board.height - 1:
+                self.currentRow += 1
 
-    def pickOrDrop(self):
-        """Pick up or drop the currently held piece.
-        Return true if did something """
-        boardHeight = self.board.boardHeight()
-        if self.holding:
-            #check if can drop. #TOFIX: need to think about dropping fatties.
-            #Maybe the board should handle dropping.
-            if boardHeight[self.currentCol] < self.board.height:
-                #TODO: drop piece
-                return True
-            else:
-                #TODO: trying to drop on a full column. make grumpy nosie
-                pass
-        else: #not holding piece. Want to pick up
-            if boardHeight[self.currentCol] > 0:
-                #TODO: pick up piece. Need to think about picking up walls...
-                return True
-            else:
-                #TODO: trying to pick up an empty column. Grumpy noise.
-                pass
+        self._updateHolder()
+        self._updateSquare()
 
+    def pickUp(self):
+        """Pick up a piece, if there is one at the current location."""
 
-
-
-
+        piece = self.board[self.currentRow, self.currentCol]
+        if piece is not None:
+            self._heldPiece = piece
+            # TODO: give some sort of visual feedback.
 

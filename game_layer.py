@@ -5,95 +5,106 @@ import pyglet as pyglet
 
 class GameLayer(cocos.layer.Layer):
     """ Creates a displayable object containing the two board layers,
-    and handle user inputs (eg: key presses).
+    and handles user input (eg: key presses).
 
     DONE: logic: call, delete, move left/right/up/down, pick/drop piece
     TODO: display, use special power
     """
 
     is_event_handler = True
-    def __init__(self, topBoard, bottomBoard, pieceHeight, pieceWidth, gameManager):
+    def __init__(self, bottomBoard, topBoard, pieceHeight, pieceWidth, gameManager):
         super(GameLayer, self).__init__()
 
-        self.topBoard = BoardLayer(topBoard, pieceHeight, pieceWidth, False)
-        self.bottomBoard = BoardLayer(bottomBoard, pieceHeight, pieceWidth, True)
+        self.topBoard = BoardLayer(topBoard, pieceHeight, pieceWidth, True)
+        self.bottomBoard = BoardLayer(bottomBoard, pieceHeight, pieceWidth, False)
         self.pieceHeight = pieceHeight
         self.pieceWidth = pieceWidth
         self.gameManager = gameManager
-        self.currentBoard = bottomBoard
 
-        #initiate selectors
-        self.topSelector = SelectorLayer(topBoard)
-        self.bottomSelector = SelectorLayer(bottomBoard)
+        # Initialize selectors.
+        # The height (in pixels) of the selector is one square-worth
+        # taller than the height of the board.
+        height = (topBoard.height + 1) * pieceHeight
+        self.topSelector = SelectorLayer(topBoard, pieceHeight, pieceWidth, height, False)
+        self.bottomSelector = SelectorLayer(bottomBoard, pieceHeight, pieceWidth, height, True)
 
-        #display stuff on screen
+        self.add(self.topBoard)
+        self.add(self.bottomBoard)
         self.add(self.topSelector)
         self.add(self.bottomSelector)
-        self.add(topBoard)
-        self.add(bottomBoard)
+        self.topSelector.position = (0, 0)
+        self.bottomSelector.position = (0, height)
+        self.topBoard.position = (0, pieceHeight)
+        self.bottomBoard.position = (0, height + pieceHeight)
 
-        #set which side is active. Default = player 1 (bottom)
-        self.bottomSelector.active = True
+        # Make the bottom player active initially.
+        self.bottomSelector.toggleActive()
+        self.currentSelector = self.bottomSelector
+        self.otherSelector = self.topSelector
 
-        #event handlers
+        # Initialize event handlers.
         self.gameManager.switchTurn.addHandler(self.switchPlayer)
 
+    @property
+    def currentBoard(self):
+        return self.currentSelector.board
+
     def switchPlayer(self):
-        """ Switches player """
-        if self.gameManager.playerIsOne:
-            self.currentBoard = self.bottomBoard
-        else:
-            self.currentBoard = self.topBoard
+        """Changes the active player.
+        
+        Keypresses only affect the active player."""
+
+        tmp = self.currentSelector
+        self.currentSelector = self.otherSelector
+        self.otherSelector = tmp
+
         self.topSelector.toggleActive()
         self.bottomSelector.toggleActive()
 
-    #handle key presses
     def on_key_press(self, key, modifiers):
-        """ Handle move selector left/right"""
+        """Handles direction keys."""
         keyName = pyglet.window.key.symbol_string(key)
-        if keyName is "LEFT": #player 1 move left
-            self.bottomSelector.moveArrow("left")
-        if keyName is "RIGHT": #player 1 move right
-            self.bottomSelector.moveArrow("right")
-        if keyName is "UP": #player 1 move DOWN (towards middle of board)
-            self.bottomSelector.moveArrow("down")
-        if keyName is "DOWN": #player 1 move UP (towards the player)
-            self.bottomSelector.moveArrow("up")
-        if keyName is "a": #player 2 move left
-            self.topSelector.moveArrow("left")
-        if keyName is "d": #player 2 move right
-            self.topSelector.moveArrow("right")
-        if keyName is "w": #player 2 move up
-            self.topSelector.moveArrow("up")
-        if keyName is "s": #player 2 move down
-            self.topSelector.moveArrow("down")
+        if keyName == "LEFT":
+            self.currentSelector.moveHolder("left")
+        if keyName == "RIGHT":
+            self.currentSelector.moveHolder("right")
+        if keyName == "UP":
+            self.currentSelector.moveHolder("down")
+        if keyName == "DOWN":
+            self.currentSelector.moveHolder("up")
 
     def on_key_release(self, key, modifiers):
-        """ Handle pick up, drop, call, delete use special power and end turn"""
+        """Handles non-repeatable actions.
+        
+        Namely, handles picking up, deleting, and dropping pieces,
+        calling new pieces, using a special power, and ending
+        the turn.
+        """
+
         keyName = pyglet.window.key.symbol_string(key)
-        if keyName is "ENTER": #player 1 want to do something
-            if self.gameManager.playerIsOne:
-                # TODO: think about how to implement "free" moves
-                # possibly move "held piece" logic from selector_layer to game_manager
-                if self.bottomSelector.pickOrDrop():
-                    self.gameManager.updateMove()
-        if keyName is "CAPLOCK": #player 2 want to do something
-            if not self.gameManager.playerIsOne:
-                if self.topSelector.pickOrDrop():
-                    self.gameManager.updateMove()
-        if keyName is "SPACE": #call. current player only.
-            self.gameManager.callPieces(self.currentBoard)
-        if keyName is "TAB": #special power. current player only. TODO
-            self.gameManager.updateMove()
-            pass
-        if keyName is "BACKSPACE": #delete a piece. current player only
-            if self.gameManager.playerIsOne:
-                pos = [self.bottomSelector.currentCol, self.bottomSelector.currentRow]
+        if keyName == "SPACE": # Pick up or drop the selected piece.
+            # TODO: think about how to implement "free" moves
+            if self.currentSelector.heldPiece is None:
+                self.currentSelector.pickUp()
             else:
-                pos = [self.topSelector.currentCol, self.topSelector.currentRow]
+                piece = self.currentSelector.heldPiece
+                col = self.currentSelector.currentCol
+                if self.currentBoard.canAddPiece(piece, col):
+                    self.currentSelector.dropPiece()
+                    self.currentBoard.movePiece(piece, col)
+                    self.gameManager.updateMove()
+
+        if keyName == "ENTER": # Call pieces.
+            self.gameManager.callPieces(self.currentBoard)
+        if keyName == "TAB": # Use a special power.
+            # TODO
+            pass
+        if keyName == "BACKSPACE": # Delete a piece.
+            pos = [self.currentSelector.currentCol, self.currentSelector.currentRow]
+            # TODO: legality checks.
             self.currentBoard.deletePiece(self.currentBoard[pos])
             self.gameManager.updateMove()
-        if keyName is "END": #end turn
-            self.gameManager.updateTurn()
+        if keyName == "END": # End the turn.
+            self.gameManager.endTurn()
 
 

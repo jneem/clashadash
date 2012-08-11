@@ -34,15 +34,15 @@ class GameManager:
     def movePiece(self, fromPosition, toColumn):
         """Puts the piece at the given position into the given column.
 
-       Also recalculates the number of turns that the current
-       player has left, and switches players if necessary.
-       Returns True if the move succeeded, and False if it was
-       an illegal move.
-       """
+        Also recalculates the number of turns that the current
+        player has left, and switches players if necessary.
+        Returns True if the move succeeded, and False if it was
+        an illegal move.
+        """
 
         # TODO: check if the piece can be picked up.
         # (so far, we only check if the putting down is legal)
-        piece = self.currentBoard[*fromPosition]
+        piece = self.currentBoard[fromPosition]
         if piece == None:
             return False
         if self.currentBoard.canAddPiece(piece, toColumn):
@@ -54,11 +54,11 @@ class GameManager:
         """Deletes the piece at the given position.
 
 
-       Also recalculates the number of turns that the current
-       player has left, and switches players if necessary.
-       Returns True if the delete succeeded, and False if it was
-       illegal.
-       """
+        Also recalculates the number of turns that the current
+        player has left, and switches players if necessary.
+        Returns True if the delete succeeded, and False if it was
+        illegal.
+        """
 
         pass
 
@@ -67,10 +67,21 @@ class GameManager:
 
         pass
 
+    def endTurn(self):
+        """Ends the active player's turn.
+
+        If the player has moves left, increases that player's mana.
+
+        Triggers the switchTurn event.
+        """
+
+        self._updateTurn()
+        # TODO: mana
+
     def _updateTurn(self):
         """Toggle who the current player is.
 
-       Triggers the switchTurn event."""
+        Triggers the switchTurn event."""
 
         self.currentPlayer.endTurn()
 

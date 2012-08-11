@@ -44,15 +44,15 @@ class BoardLayer(cocos.layer.Layer):
         board.pieceUpdated.addHandler(self._updateNotification)
 
     def yAt(self, row):
-        """The y coordinate of the given row."""
-        return row * self.pieceWidth
+        """The y coordinate of the bottom edge of the given row."""
+        if self.reflect:
+            return row * self.pieceHeight
+        else:
+            return (self.board.height - row) * self.pieceHeight
 
     def xAt(self, col):
-        """The x coordinate of the given column."""
-        if self.reflect:
-            return col * (self.board.height - self.pieceHeight)
-        else:
-            return col * self.pieceHeight
+        """The x coordinate of the left edge of the given column."""
+        return col * self.pieceWidth
 
     def _updateNotification(self, pieces):
         """Called whenever the board is updated."""
