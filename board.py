@@ -351,6 +351,7 @@ class Board:
         # If the piece belongs to the board, remove it from the
         # grid first, just in case it's already occupying the column
         # that we're adding it to.
+        fat = piece.size[1]
         if piece in self.units:
             self._deleteFromGrid(piece)
         vacantRows = self.boardHeight()
@@ -387,7 +388,7 @@ class Board:
         row = self._rowToAdd(piece, col)
         piece.position = [row, col]
         self._addToGrid(piece)
-        self._units.add(piece)
+        self.units.add(piece)
         self._updatedPieces.add(piece)
 
     def deletePiece(self, piece):
@@ -418,7 +419,7 @@ class Board:
         row = piece.position[0]
         col = piece.position[1]
 
-        if any(grid[row:(row+tall), col:(col+fat)] != piece):
+        if any(self.grid[row:(row+tall), col:(col+fat)] != piece):
             raise ValueError("Piece and board disagree on position")
 
         self.grid[row:(row+tall), col:(col+fat)] = None
@@ -433,7 +434,13 @@ class Board:
         row = piece.position[0]
         col = piece.position[1]
 
-        if any(grid[row:(row+tall), col:(col+fat)] != None):
+        # We want to check if there are any non-None elements in
+        # the region. Unfortunately, any(region != None) doesn't
+        # work because the '!= None' comparison doesn't check
+        # elementwise.
+        region = self.grid[row:(row+tall), col:(col+fat)].reshape(-1)
+        occupied = map(lambda x: x != None, region)
+        if any(occupied):
             raise ValueError("Position is already occupied")
 
         self.grid[row:(row+tall), col:(col+fat)] = piece
