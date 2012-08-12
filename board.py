@@ -486,7 +486,7 @@ class Board:
     def _regionFull(self, offset, regionSize):
         """Checks whether the given region is full of pieces.
 
-        Returns false if regionSize is (0, 0)        
+        Returns false if regionSize is 0 in either coordinate
         """
         if min(regionSize) == 0:
             return False
