@@ -38,8 +38,12 @@ class Board:
         self._piecePositions = {}
         
         # Event handler that will be triggered each time
-        # when a formation or a transformation is made.
-        self.formationMade = EventHook()
+        # when an attack formation is created
+        self.attackMade = EventHook()
+        
+        # Event handler that will be triggered each time 
+        # when a wall is created
+        self.wallMade = EventHook()
         
         # Event handler that will be triggered when a link is made
         # TODO. NOT IMPLEMENTED
@@ -546,8 +550,8 @@ class Board:
             if self._transformFull(unit) and all(unit.canTransform(x) for x in transformers):
                 #if its friends has not been marked as transformed
                 if transformingPieces.isdisjoint(set(transformers)):
-                    #call handlers
-                    self.formationMade.callHandlers()
+                    #call handlers that a wall is made
+                    self.wallMade.callHandlers()
                 #mark the unit and _all_ the transforming objects as transforming
                 transformingPieces.add(unit)
                 transformingPieces.update(transformers)
@@ -576,7 +580,7 @@ class Board:
            
             self._replacePiece(unit, unit.charge()) 
             #notify listeners that a charging formation has been formed
-            self.formationMade.callHandlers()                        
+            self.attackMade.callHandlers()                        
             
         # Create walls.
         for unit in transformingPieces:
