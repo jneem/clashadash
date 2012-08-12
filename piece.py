@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from ghostPiece import ghostPiece
+from ghost_piece import GhostPiece
 
 class Piece(object):
     """A piece is something that lives on the board.

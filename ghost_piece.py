@@ -11,7 +11,7 @@ but has its own position
 
 from piece import Piece
 
-class ghostPiece(Piece):
+class GhostPiece(Piece):
     
     def __init__(self, description, piece):
         """ Create a ghost of piece
