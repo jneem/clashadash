@@ -402,8 +402,8 @@ class Board:
             
         row = self._rowToAdd(piece, col)
         piece.position = [row, col]
-        self._addToGrid(piece)
         self.units.add(piece)
+        self._addToGrid(piece)        
         self._updatedPieces.add(piece)
 
     def deletePiece(self, piece):
@@ -484,7 +484,13 @@ class Board:
                               range(col,(col+regionSize[1])))
 
     def _regionFull(self, offset, regionSize):
-        """Checks whether the given region is full of pieces."""
+        """Checks whether the given region is full of pieces.
+
+        Returns false if regionSize is (0, 0)        
+        """
+        if min(regionSize) == 0:
+            return False
+
         row = offset[0]
         col = offset[1]
         return (row + regionSize[0] <= self.height and
@@ -518,8 +524,8 @@ class Board:
         return self._piecesInRegion(transformPosition, piece.transformingRegion())
 
     def _transformFull(self, piece):
-        """Checks whether the piece's transform region is full."""
-
+        """Checks whether the piece's transform region is full. """            
+        
         transformPosition = (piece.position[0], piece.position[1] + piece.size[1])
         return self._regionFull(transformPosition, piece.transformingRegion())
 
@@ -536,7 +542,7 @@ class Board:
             # Look at the pieces in the charging region.  If there are some,
             # and they are all good then the unit gets charged.
             chargers = self._chargers(unit)
-            if chargers and self._chargeFull(unit) and all(unit.canCharge(x) for x in chargers):
+            if self._chargeFull(unit) and all(unit.canCharge(x) for x in chargers):
                 # then this unit can be charged
                 chargingPieces.add(unit)
 
@@ -608,8 +614,8 @@ class Board:
 
     def _appearPiece(self, piece, pos):
         """Place a new piece in the given position."""
-        self._addToGrid(piece)
-        self.units.add(piece)        
+        self.units.add(piece)                
+        self._addToGrid(piece)        
         self._updatedPieces.add(piece)
 
     def _replacePiece(self, old, new):
