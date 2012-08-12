@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from ghost_piece import GhostPiece
-
 class Piece(object):
     """A piece is something that lives on the board.
 
@@ -128,7 +126,3 @@ class Piece(object):
 
     def multiChargeable(self):
         return self._multiChargeable
-
-    def makeGhost(self):
-        """ Return a ghost copy of self """ 
-        return ghostPiece(self.description, self)

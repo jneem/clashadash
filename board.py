@@ -2,6 +2,7 @@
 
 import numpy as np
 from event_hook import EventHook
+from ghost_piece import GhostPiece
 
 class Board:
     """Represents one player's board.
@@ -629,7 +630,7 @@ class Board:
                 #make a fictious board with ghost pieces.
                 boardCopy = self.ghostBoard()
                 #make a ghost of the current piece
-                ghost = piece.makeGhost()
+                ghost = GhostPiece(piece.description, piece)
                 #add ghost to boardCopy
                 boardCopy.addPiece(ghost, col)
                 #if no formations is created
@@ -644,7 +645,7 @@ class Board:
             for j in xrange(self.width):
                 if self.grid[i,j] is not None:
                     piece = self.grid[i,j]
-                    ghost = piece.makeGhost()
+                    ghost = GhostPiece(piece.description, piece)
                     boardCopy.grid = ghost
                     boardCopy.units.add(ghost)
         return boardCopy
