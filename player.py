@@ -13,11 +13,16 @@ class Player:
     champions available, mana,
     Has unit generating function. """
 
-    def __init__(self, life, maxMoves, maxMana, maxUnitTotal, baseWeights, baseNames, specialWeights, specialNames, specialRarity, unitFactory):
+    def __init__(self, life, maxMoves, maxMana, maxUnitTotal, manaFactor, baseWeights, baseNames, specialWeights, specialNames, specialRarity, unitFactory):
         self.life = life
         self.maxMoves = maxMoves
         self.maxMana = maxMana
         self.maxUnitTotal = maxUnitTotal #max total number of units can call
+        
+        #mana factors to be used in calculations. Choices are 1, 1.2, 1.5, 2
+        #higher factor means mana fills up faster when make links/fusion/etc..
+        #manaFactor = [link, fuse, move]
+        self.manaFactor = manaFactor
 
         #weight distribution of base units. Integers, sum to 3
         self.baseWeights = np.array(baseWeights)
@@ -45,18 +50,6 @@ class Player:
     def setGameManager(self, gameManager):
         self.gameManager = gameManager
 
-    def endTurn(self):
-        """ Basic End turn: update mana, reset usedMoves.
-        Special effects will be listening to the game_layer separate."""
-        self.updateMana(self.maxMoves - self.usedMoves)
-        self.usedMoves = 0
-
-    def updateMana(self, num):
-        """ Update mana by num. Emit stuff if max is reached """
-        self.mana += num
-        if self.mana >= self.maxMana:
-            self.mana = self.maxMana #TODO: animate, sound, show amount added
-
     def getSpecialUnit(self):
         """ Return a special unit. Relative probability of specific types is
             innerproduct(effweight, specialRarity)
@@ -78,6 +71,7 @@ class Player:
 
     def getRandomUnit(self):
         """ Return a random unit
+        
             Probability of being special is 0.2*innerproduct(effWeights, specialRarity)/100
         """
         specialOdds = self.specialRarity * self.effWeights

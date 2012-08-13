@@ -140,10 +140,11 @@ class SelectorLayer(cocos.layer.Layer):
         self._updateSquare()
 
     def pickUp(self):
-        """Pick up a piece, if there is one at the current location."""
-
-        piece = self.board[self.currentRow, self.currentCol]
-        if piece is not None:
-            self._heldPiece = piece
-            # TODO: give some sort of visual feedback.
-
+        """Pick up a piece, if there is one at the current location AND
+        piece is at the top of the column
+        """
+        if self.currentRow == self.board.boardHeight[self.currentCol] - 1:
+            piece = self.board[self.currentRow, self.currentCol]
+            if piece is not None:
+                self._heldPiece = piece
+            # TODO: animate. Have mask over current position.

@@ -83,7 +83,6 @@ class GameLayer(cocos.layer.Layer):
 
         keyName = pyglet.window.key.symbol_string(key)
         if keyName == "SPACE": # Pick up or drop the selected piece.
-            # TODO: think about how to implement "free" moves
             if self.currentSelector.heldPiece is None:
                 self.currentSelector.pickUp()
             else:
@@ -91,19 +90,18 @@ class GameLayer(cocos.layer.Layer):
                 col = self.currentSelector.currentCol
                 if self.currentBoard.canAddPiece(piece, col):
                     self.currentSelector.dropPiece()
-                    self.currentBoard.movePiece(piece, col)
-                    self.gameManager.updateMove()
+                    self.gameManager.movePiece(piece, col)
 
         if keyName == "ENTER": # Call pieces.
             self.gameManager.callPieces(self.currentBoard)
-        if keyName == "TAB": # Use a special power.
-            # TODO
-            pass
-        if keyName == "BACKSPACE": # Delete a piece.
+        if keyName == "TAB": # Use mana
+            if self.gameManager.useMana(): #if the logic works
+                #TODO: 
+                pass
+        if keyName == "BACKSPACE": 
+            # Delete a piece. Logic check is done by gameManager
             pos = [self.currentSelector.currentCol, self.currentSelector.currentRow]
-            # TODO: legality checks.
-            self.currentBoard.deletePiece(self.currentBoard[pos])
-            self.gameManager.updateMove()
+            self.gameManger.deletePiece(pos)
         if keyName == "END": # End the turn.
             self.gameManager.endTurn()
 

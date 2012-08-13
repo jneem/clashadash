@@ -24,6 +24,9 @@ class Board:
         self.height = height
         self.width = width
 
+        #Set of attack formations
+        self.currentAttacks = set()
+
         # Event handlers that will be triggered each time a piece is
         # changed (added, removed, or moved). The callbacks should take
         # one unnamed argument, which is a set of pieces to which they apply.
@@ -44,10 +47,6 @@ class Board:
         # Event handler that will be triggered each time 
         # when a wall is created
         self.wallMade = EventHook()
-        
-        # Event handler that will be triggered when a link is made
-        # TODO. NOT IMPLEMENTED
-        self.linkMade = EventHook()
         
         # Event handler that will be triggered when fusion is made
         # TODO. NOT IMPLEMENTED
@@ -626,7 +625,9 @@ class Board:
 
     def colToAdd(self, piece):
         """ Return the column value if the piece can be added
-        without creating formations/walls. Return None if cannot be added anywhere.
+        without creating formations/walls. 
+        
+        Return None if cannot be added anywhere.
         """
         #choose a random ordering of the columns
         columnList = list(np.random.permutation(self.width))
