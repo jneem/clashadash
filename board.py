@@ -482,6 +482,9 @@ class Board:
         return self.getPieces(range(row,(row+regionSize[0])),
                               range(col,(col+regionSize[1])))
 
+    def _regionEmpty(self, offset, regionSize):
+        return bool(self._piecesInRegion(offset, regionSize))
+
     def _regionFull(self, offset, regionSize):
         """Checks whether the given region is full of pieces.
 
@@ -563,41 +566,47 @@ class Board:
 
         # Create charging formations. Resolve multiChargeable conflicts here.
         #sort chargingPieces by column to avoid update order problems
-        chargingPieces = set(sorted(list(chargingPieces), key = lambda piece: piece.position[1]))
+        chargingPieces = sorted(list(chargingPieces), key = lambda piece: piece.position[1])
+        chargedPieces = []
         for unit in chargingPieces:
-            # Remove the pieces used to charge this piece.
-            # Unless if it is also in the transforming OR the charging list
-            # AND the unit in front is multichargeable
-            if unit._multiChargeable is True:
+            # If this unit was used to charge something else, it may
+            # have been already removed from the board. In that case, we skip charging it.
+            if unit in self.units:
+                # Remove the pieces used to charge this piece.
+                # (unless it is also in the charging list AND the unit in front is multichargeable).
                 for x in self._chargers(unit):
-                    if x not in (chargingPieces or transformingPieces):
+                    if not (unit._multiChargeable and x in chargingPieces):
                         self._deletePiece(x)
-                    else:
-                        self._deleteFromGrid(x)
-            else: #unit not multiChargeable
-                for x in self._chargers(unit):
-                    if x in chargingPieces: #disable charging
-                        chargingPieces.remove(x)
-                    if x in transformingPieces:
-                        self._deleteFromGrid(x)
-                    else:
-                        self._deletePiece(x)
-           
-            self._replacePiece(unit, unit.charge()) 
-            #notify listeners that a charging formation has been formed
-            self.attackMade.callHandlers()                        
+                
+                charged = unit.charge()
+                self._replacePiece(unit, charged)
+                chargedPieces.append(charged)
+
+        self.attackMade.callHandlers(set(chargedPieces))
             
         # Create walls.
+        transformedPieces = []
         for unit in transformingPieces:
-            #if unit is existing on board
-            if self._existPiece(unit):
-                self._replacePiece(unit, unit.transform())
-            else: 
-                row = self._rowToAdd(unit, unit.position[1])
-                #if unit can be added back to the same column then add.
-                if row < self.height:
-                    pos = [row, unit.position[1]]
-                    self._appearPiece(unit, pos)
+            position = unit.position
+            if unit in self.units:
+                self._deletePiece(unit)
+
+            transformed = unit.transform()
+            if transformed.size[1] + position[1] > self.width:
+                # If the transformed piece is too fat, ignore it.
+                continue
+
+            # Try to place the transformed unit on the board, starting from the position
+            # of the original and then shifting backwards.
+            tall = transformed.size[0]
+            for row in range(position[0], self.height - tall + 1):
+                pos = (row, position[1])
+                if self._regionEmpty(self, pos, transformed.size):
+                    self._appearPiece(transformed, pos)
+                    transformedPieces.append(transformed)
+                    break
+
+        self.wallMade.callHandlers(set(transformedPieces))
                 
         return bool(chargingPieces or transformingPieces)
 
@@ -606,10 +615,8 @@ class Board:
         
         Only check the head square. 
         """
-        if self.grid[piece.position] is piece:
-            return True
-        else:
-            return False
+
+        return self.grid[piece.position] is piece
 
     def _appearPiece(self, piece, pos):
         """Place a new piece in the given position."""
