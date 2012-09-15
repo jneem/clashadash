@@ -9,19 +9,19 @@ transparent colored mask on the selected piece.
 """
 
 import cocos
+import logging
 from cocos.sprite import Sprite
 from cocos.layer.util_layers import ColorLayer
 from event_hook import EventHook
 
 class SelectorLayer(cocos.layer.Layer):
-    def __init__(self, board, pieceHeight, pieceWidth, height, reflect):
+    def __init__(self, board, pieceHeight, pieceWidth, reflect):
         """Creates a SelectorLayer.
 
         board -- an instance of class Board.
         pieceWidth -- the width (in pixels) of a square on the board.
         pieceHeight -- the height (in pixels) of a square on the board.
-        height -- the height (in pixels) of the entire SelectorLayer.
-            This should be at least the height (in pixels) of the board.
+        boardHeight -- the height (in squares) of the Board.
         reflect -- if False, row 0 will be displayed at the top.
 
         """
@@ -30,7 +30,6 @@ class SelectorLayer(cocos.layer.Layer):
         self.board = board
         self.pieceWidth = pieceWidth
         self.pieceHeight = pieceHeight
-        self.height = height
         self.reflect = reflect
         self.currentCol = 0
         self.currentRow = board.height - 1
@@ -72,7 +71,7 @@ class SelectorLayer(cocos.layer.Layer):
         if self.reflect:
             return row * self.pieceHeight
         else:
-            return self.height - (row + 1) * self.pieceHeight
+            return (self.board.height - row) * self.pieceHeight
 
     def xAt(self, col):
         """The x coordinate of the left edge of the given column."""
@@ -143,8 +142,19 @@ class SelectorLayer(cocos.layer.Layer):
         """Pick up a piece, if there is one at the current location AND
         piece is at the top of the column
         """
-        if self.currentRow == self.board.boardHeight[self.currentCol] - 1:
+
+        colHeight = self.board.boardHeight()[self.currentCol]
+        if self.currentRow == colHeight - 1:
             piece = self.board[self.currentRow, self.currentCol]
-            if piece is not None:
+            if piece is None:
+                logging.debug('not picking up piece at (%d, %d) because that square is empty'
+                        % (self.currentRow, self.currentCol))
+            else:
+                logging.debug('picking up piece %s at (%d, %d)'
+                        % (piece, self.currentRow, self.currentCol))
                 self._heldPiece = piece
             # TODO: animate. Have mask over current position.
+        else:
+            logging.debug('not picking up piece at (%d, %d) because column height is %d'
+                    % (self.currentRow, self.currentCol, colHeight))
+

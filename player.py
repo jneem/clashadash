@@ -7,13 +7,29 @@ Created on Thu May 17 18:20:27 2012
 #from game_manager import GameManager
 from event_hook import EventHook
 import numpy as np
+import random
 
 class Player:
     """ Model class. Has player data: life, number of moves, special equip,
     champions available, mana,
     Has unit generating function. """
 
-    def __init__(self, life, maxMoves, maxMana, maxUnitTotal, manaFactor, baseWeights, baseNames, specialWeights, specialNames, specialRarity, unitFactory):
+    def __init__(self, unitFactory, life=100, maxMoves=3, maxMana=100,
+            maxUnitTotal=32, manaFactor=(1,1,1),
+            baseWeights=[], baseNames=[],
+            specialWeights=[], specialNames=[], specialRarity=[]):
+        """
+        Parameters:
+            manaFactor: a tuple of length three.  Whenever a player does
+                a mana-generating action, the amount of mana they get
+                for it will be multiplied by the corresponding element
+                of this list:
+                    manaFactor[0] multiplies the mana given for creating links
+                    manaFactor[1] multiplies the mana given for fusing units
+                    manaFactor[2] multiplies the mana given for other moves
+                (TODO: consider making this a dict)
+        """
+
         self.life = life
         self.maxMoves = maxMoves
         self.maxMana = maxMana
@@ -41,7 +57,6 @@ class Player:
         self.usedMoves = 0
         # After losing special units, there is a temporary penalty to
         # its weight; effWeights keeps track of the possibly penalized value.
-        self.effTotal = maxUnitTotal #effective total number of units can call
         self.effWeights = self.specialWeights.copy() #effective unit weights
 
         #event emitters
@@ -57,8 +72,11 @@ class Player:
         effOdds = self.specialRarity * self.effWeights
         weights = [np.random.uniform()*x for x in effOdds]
         unitName = self.specialNames[np.argmax(weights)]
-        unit = self.unitFactory.create(unitName)
+        unit = self.unitFactory.create(unitName, self.randomColor())
         return unit
+
+    def randomColor(self):
+        return random.choice(['red', 'white', 'blue'])
 
     def getBaseUnit(self):
         """ Return a base unit. Relative probability of specific types is
@@ -66,7 +84,7 @@ class Player:
         """
         weights = [np.random.uniform()*x for x in self.baseWeights]
         unitName = self.baseNames[np.argmax(weights)]
-        unit = self.unitFactory.create(unitName)
+        unit = self.unitFactory.create(unitName, self.randomColor())
         return unit
 
     def getRandomUnit(self):

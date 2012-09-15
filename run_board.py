@@ -4,12 +4,15 @@ import cocos
 from described_object_factory import UnitFactory
 from board_layer import BoardLayer
 from board import Board
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 uf = UnitFactory('unit_descriptions.xml')
 
-cocos.director.director.init()
+cocos.director.director.init(width=1024, height=768)
 board = Board(6, 8)
-board_layer = BoardLayer(board, 96, 96, False)
+board_layer = BoardLayer(board, 48, 64, False)
 
 # Fill the board
 for row in range(2):

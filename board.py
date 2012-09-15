@@ -197,8 +197,7 @@ class Board:
             for i in range(boardHeight[j]):
                 unit = self[i,j]
                 unitTop = self[i+unit.size[0],j]
-                if unit.canMerge(unitTop): #if can merge
-                    #merge
+                if unitTop and unit.canMerge(unitTop):
                     updated = True
                     for k in range(i+unit.size[0], i+unit.size[0]+unitTop.size[0]):
                         self[k,j] = None
@@ -370,11 +369,17 @@ class Board:
         # If the piece belongs to the board, remove it from the
         # grid first, just in case it's already occupying the column
         # that we're adding it to.
-        fat = piece.size[1]
-        if piece in self.units:
+        deleted = False
+        if piece in self.units and self.grid[tuple(piece.position)] != None:
+            deleted = True
             self._deleteFromGrid(piece)
+
+        fat = piece.size[1]
         vacantRows = self.boardHeight()
         row = int(max(vacantRows[range(col, col+fat)]))
+
+        if deleted:
+            self._addToGrid(piece)
         return row
 
     def canAddPiece(self, piece, col):
@@ -433,8 +438,12 @@ class Board:
         row = piece.position[0]
         col = piece.position[1]
 
-        if any(self.grid[row:(row+tall), col:(col+fat)] != piece):
-            raise ValueError("Piece and board disagree on position")
+        # Raise an error if the piece thinks it's in a position that
+        # actually belongs to another piece.  (If the piece thinks it's
+        # in a position that's actually empty, don't complain.)
+        region = self.grid[row:(row+tall), col:(col+fat)].reshape(-1)
+        if any([u != None and u != piece for u in region]):
+            raise ValueError("Piece and board disagree on position", piece, piece.position)
 
         self.grid[row:(row+tall), col:(col+fat)] = None
 
@@ -644,7 +653,7 @@ class Board:
                 #make a fictious board with ghost pieces.
                 boardCopy = self.ghostBoard()
                 #make a ghost of the current piece
-                ghost = GhostPiece(piece.description, piece)
+                ghost = GhostPiece(piece)
                 #add ghost to boardCopy
                 boardCopy.addPiece(ghost, col)
                 #if no formations is created
@@ -655,13 +664,9 @@ class Board:
     def ghostBoard(self):
         """ Return a hard copy of board with ghost pieces """ 
         boardCopy = Board(self.height, self.width)
-        for i in xrange(self.height):
-            for j in xrange(self.width):
-                if self.grid[i,j] is not None:
-                    piece = self.grid[i,j]
-                    ghost = GhostPiece(piece.description, piece)
-                    boardCopy.grid = ghost
-                    boardCopy.units.add(ghost)
+        for u in self.units:
+            ghost = GhostPiece(u)
+            boardCopy._appearPiece(u, u.position)
         return boardCopy
 
         

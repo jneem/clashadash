@@ -12,14 +12,16 @@ class ChargingUnit(Piece):
                 in size (3, 1) and base_size (1, 1).
         """
         
-        Piece.__init__(self, description, position)
+        Piece.__init__(self, description)
         
+        self.position = position
         self.color = color
         self.base_size = base_size
         self.initialPower = int(description['initialPower'])
         self.maxPower = int(description['maxPower'])
         self.maxTurns = int(description['turns'])
         self.turn = self.maxTurns
+        self.imageBase = description['imageBase']
         
         self.toughness = self.chargeAtTurn(self.turn)
         
@@ -61,3 +63,6 @@ class ChargingUnit(Piece):
     def readyToAttack(self):
         return self.turn <= 0
         
+    def imageName(self):
+        return self.imageBase + '.png'
+
