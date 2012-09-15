@@ -6,7 +6,8 @@ import logging
 
 colors = {
     'blue' : (0, 0, 255),
-    'red' : (255, 0, 0)
+    'red' : (255, 0, 0),
+    'white' : (255, 255, 255)
 }
 
 class PieceLayer(cocos.layer.Layer):
