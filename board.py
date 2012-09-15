@@ -108,29 +108,19 @@ class Board:
         return heightA
 
     def normalize(self):
-        """Updates the board by sliding pieces, find and update links,
-        slide by priority,
-        and iterate these 3 steps until no more updates required.
+        """Updates the board by sliding pieces by priority, find and update links,
+        and iterate these 2 steps until no more updates required.
         """
         shiftStuff = 1
         while(shiftStuff > 0):
             shiftStuff = 0
-            shiftStuff += self._shiftToEmpty() #shift to empty squares
+            self._shiftByPriority() #shift higher priority guys to front
             self._reportPieceUpdates()
-            formStuff = 1
-            while(formStuff > 0):
-                formStuff = 0
-                create = self._createFormations() #check and make new formations
-                self._reportPieceUpdates()
-                formStuff += create
-                shiftStuff += create
-
-                priority = self._shiftByPriority() #shift higher priority guys to front
-                self._reportPieceUpdates()
-                formStuff += priority
-                shiftStuff += priority
-
-            shiftStuff += self._mergeWalls()
+            create = self._createFormations() #check and make new formations
+            self._reportPieceUpdates()
+            #if created new things, need to shift by priority again            
+            shiftStuff += create
+            shiftStuff += self._mergeWalls() #if created walls
             self._reportPieceUpdates()
 
     def _reportPieceUpdates(self):
@@ -161,27 +151,6 @@ class Board:
             # Copy the list, in case the original changes.
             self._piecePositions[u] = list(u.position)
 
-    def _shiftToEmpty(self):
-        """Shifts all pieces to empty squares.
-
-       Returns true if anything changed.
-       """
-        updated = False
-        #sort units by increasing row values
-        unitList = sorted(list(self.units), key = lambda piece: piece.position[0])
-        for unit in unitList:
-            col = unit.position[1]
-            fat = unit.size[1]
-            #check how far to slide
-            if(unit.position[0] != 0): #if not at the bottom
-                for i in reversed(range(unit.position[0])):
-                    if self[i, col] is not None or self[i, col+fat-1] is not None: #if cannot slide further
-                        if unit.position[0] != i+1:
-                            updated = True
-                            unit.position[0] = i+1 #make the unit be on top of this position
-                        break
-        return updated
-
     def _mergeWalls(self):
         """Merges pairs of vertically adjacent walls.
         Does one merging per column, from bottom row to top
@@ -196,14 +165,15 @@ class Board:
         for j in range(self.grid.shape[1]):
             for i in range(boardHeight[j]):
                 unit = self[i,j]
-                unitTop = self[i+unit.size[0],j]
-                if unit.canMerge(unitTop): #if can merge
-                    #merge
-                    updated = True
-                    for k in range(i+unit.size[0], i+unit.size[0]+unitTop.size[0]):
-                        self[k,j] = None
-                    unit.merge(unitTop)
-                    self._deletePiece(unitTop)
+                if unit is not None:
+                    unitTop = self[i+unit.size[0],j]
+                    if unit.canMerge(unitTop): #if can merge
+                        #merge
+                        updated = True
+                        for k in range(i+unit.size[0], i+unit.size[0]+unitTop.size[0]):
+                            self[k,j] = None
+                        unit.merge(unitTop)
+                        self._deletePiece(unitTop)
                     break
         return updated
 
@@ -219,9 +189,10 @@ class Board:
         nrow = self.grid.shape[0]
         ncol = self.grid.shape[1]
         #keep a fatty list
-        fatty = []
+        fatty = set()
         #sort the pieces on the board one column at a time by priority
-        for j in range(ncol): #for j column
+        for j in range(ncol):  #for each column
+            #get the units in column j
             unitCol = self.getPieces(range(nrow), [j])
             if not unitCol:
                 continue #has no unit
@@ -231,30 +202,29 @@ class Board:
             unitCol = sorted(unitCol, key = lambda piece: piece.position[0])
             #sort by decreasing priority
             unitCol = sorted(unitCol, key = lambda piece: piece.slidePriority, reverse = True)
+            if j == 1:
+                print "on column 1: " + str([x.name for x in unitCol])
             #copy this over to the board
             self[range(nrow), j] = None
             i = 0
             for unit in unitCol:
                 self[range(i, i+unit.size[0]), j] = unit
-
-                # Check if the unit has moved.
-                if i != unit.position[0]:
+                # If in the correct reference column, check if the unit has moved
+                if i != unit.position[0] and j == unit.position[1]:
                     updated = True
                     unit.position[0] = i
-
-                    if unit.size == (2, 2):
-                        fatty.append(unit)
-
+                if unit.size == (2, 2):
+                    fatty.add(unit)
+                #check the next height level
                 i += unit.size[0]
 
             #check for fatty disalignment
-            trynum = 0
-            while self._doAlignFatty(fatty):
-                updated = True
-                trynum = trynum + 1
-                print "fatty aligning attempt number " + str(trynum)
-                if(trynum > 100):
-                    raise MemoryError("attempt to realign fatty over 100 times")
+        trynum = 0
+        while self._doAlignFatty(fatty):
+            trynum = trynum + 1
+            print "fatty aligning attempt number " + str(trynum)
+            if(trynum > 100):
+                raise MemoryError("attempt to realign fatty over 100 times")
         return updated
 
     def _doAlignFatty(self, fatList):
@@ -264,39 +234,50 @@ class Board:
         updated = False
         for unit in fatList:
             if self[unit.position[0]+1,unit.position[1]+1] != unit: #if not aligned
+                #flag updated as True since we'll need another iteration
+                updated = True
                 #look up where the top corner is in the column
                 j = unit.position[1]+1
                 topCornerLoc = None
                 for i in reversed(range(self.grid.shape[0])):
                     if self[i, j] == unit:
                         topCornerLoc = i
-                        break
+                        break           
                 #if top corner is higher
+                print "fatty name " + unit.name
+                print "Top corner is " + str(topCornerLoc)
+                print "Expected corner is " + str(unit.position[0]+1)
                 if topCornerLoc > unit.position[0]+1:
                     #shift the leftside up as far as possible
-                    delta = topCornerLoc - unit.position[0]+1
-                    maxShift = 0
-                    for i in range(delta):
+                    delta = topCornerLoc - (unit.position[0]+1)
+                    maxShift = 0      
+                    for i in range(delta+1):
                         if(self._canShiftUp(j-1,unit.position[0]+1+i, topCornerLoc)):
                             maxShift = i
                     #shift up by maxshift
+                    print "shifting the leftside of " + unit.name + " up"
+                    print "delta = " + str(delta)                    
+                    print "maxshift = " + str(maxShift)
                     if(maxShift > 0):
-                        self._doShiftUp(j-1, unit.position[0]+maxShift, topCornerLoc-1)
-                    #then shift the rightside down
-                    self._doShiftDown(j, topCornerLoc-1,unit.position[0], 2)
+                        shifted = self._doShiftUp(j-1, unit.position[0], unit.position[0]+maxShift)
+                        print shifted
+                    if maxShift == 0 or not shifted: 
+                        #if cannot shift the left side up, then shift the rightside down
+                        self._doShiftDown(j, topCornerLoc-1,unit.position[0], 2)
                 #if top corner is lower
                 if topCornerLoc < unit.position[0] +1:
                     #shift the rightside up as far as possible
                     delta = unit.position[0]+1 - topCornerLoc
                     maxShift = 0
-                    for i in range(delta):
+                    for i in range(delta+1):
                         if(self._canShiftUp(j, topCornerLoc-1, topCornerLoc-1+maxShift)):
                             maxShift = i
                     #shift up by maxshift
-                    if(maxShift > 0):
-                        self._doShiftUp(j, topCornerLoc-1, topCornerLoc-1+maxShift)
-                    #then shift the leftside down
-                    self._doShiftDown(j-1,unit.position[0], topCornerLoc+maxShift,2)
+                    if(maxShift > 0):                    
+                        shifted = self._doShiftUp(j, topCornerLoc-1, topCornerLoc-1+maxShift)
+                    if maxShift == 0 or not shifted:
+                        #then shift the leftside down
+                        self._doShiftDown(j-1,unit.position[0], topCornerLoc+maxShift,2)
         return updated
 
     def _canShiftUp(self, col, oldRow, newRow):
@@ -318,11 +299,17 @@ class Board:
         create None in the intermediate rows
         and shift all the guys behind him as well.
         Assuming that things behind him are in a continuous column.
+        Return True if did some changes
         """
+        shifted = False
+        print str(oldRow)
+        print str(newRow)
+        print str(col)
         nrow = self.grid.shape[0]
         delta = newRow - oldRow
         for i in reversed(range(oldRow, nrow)):
             if i >= newRow:
+                shifted = True
                 self[i,col] = self[i-delta, col]
                 unit = self[i,col] #update its position if it is not a fatty
                 if unit is None:
@@ -331,9 +318,11 @@ class Board:
                     unit.position[0] = i
             else: #fill intermediate rows with None
                 self[i,col] = None
+        return shifted
 
     def _doShiftDown(self, col, oldRow, newRow, size):
         """ Shift an object of size size, from (oldRow, col) DOWN to (newRow, col).
+        Requires newRow < oldRow
         For all objects which get displaced, put them in the same order in the
         vacant rows. Effectively: swap the blocks
         """
@@ -343,7 +332,7 @@ class Board:
         #copy bottom out
         bottemp = botBlock.copy()
         #shift top down
-        self[newRow, newRow+size] = topBlock
+        self[range(newRow, newRow+size), col] = topBlock
         #update unit position if its base is in this column
         for i in range(newRow, newRow+size):
             unit = self[i,col]
@@ -352,8 +341,8 @@ class Board:
             if unit.position[1] == col:
                 unit.position[0] = i
         #shift bottom block up
-        self[newRow+size, oldRow+size] = bottemp
-        #updae unit position if its base is in this column
+        self[range(newRow+size, oldRow+size), col] = bottemp
+        #update unit position if its base is in this column
         for i in range(newRow+size, oldRow+size):
             unit = self[i,col]
             if unit is None:
