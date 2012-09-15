@@ -28,10 +28,15 @@ class DummyPiece(Piece):
             return (0, 0)
 
     def canCharge(self, other):
-        return True
+        return self.chargeable
 
     def charge(self):
-        return DummyPiece(3, 1)
+        if self.size == (1,1):
+            return DummyPiece(3, 1)
+        if self.size == (2, 1):
+            return DummyPiece(2, 1)
+        if self.size == (2,2):
+            return DummyPiece(2, 2)
 
     def transform(self):
         return DummyPiece(self.size[0], self.size[1], transformable=False)
@@ -111,6 +116,69 @@ class TestBoard(unittest.TestCase):
 
         b.deletePiece(piece1)
         self.assertEqual(updates[0], set([piece1]))
+    
+    #-- fatty test
+    def _isFattyHere(self, board, fatty, h, w):
+        """ Returns true if fatty position is at (h, w) and 
+        it is occupying all the 4 squares up to (h+1,w+1) """
+        if fatty.position != [h,w]:
+            return False
+        for i in (0,1):
+            for j in (0,1):
+                if board[h+i, w+j] != fatty:
+                    return False
+        return True
+    
+    def testSlideFatty(self):
+        b = Board(4, 4)
+        #add two small pieces in front of fatty
+        piece1 = DummyPiece(1, 1, chargeable = False)
+        piece2 = DummyPiece(1, 1, chargeable = False)
+        fatpiece = DummyPiece(2, 2, chargeable = False)
+        fatpiece.name = "fatty"
+        
+        b.addPiece(piece1, 0)
+        b.addPiece(piece2, 0)
+        b.addPiece(fatpiece, 0)        
+        b.normalize()
+        
+        #the two squares (0,1) and (1,1) in front of fatty should be empty        
+        self.assertEqual(b[0,1], None)
+        self.assertEqual(b[1,1], None)
+        #fatty should be at position (2, 0)
+        self.assertEqual(self._isFattyHere(b, fatpiece, 2, 0), True)
+        
+        #now make fatty slide in front
+        fatpiece.slidePriority = 5 
+        b.normalize()
+        #fatty should occupy the (0,0) position
+        self.assertEqual(self._isFattyHere(b, fatpiece, 0, 0), True)
+    
+    def testSlidePairFatty(self):
+        b = Board(4,3)
+        #add a fatty to column 1 and another to column 0
+        fat1 = DummyPiece(2,2)
+        fat1.name = "fat right"
+        fat0 = DummyPiece(2,2)
+        fat0.name = "fat left"
+        
+        b.addPiece(fat1, 1)
+        b.addPiece(fat0, 0)
+        b.normalize()
+        
+        #fat1 should be below fat0
+        self.assertEqual(self._isFattyHere(b, fat0, 2, 0), True)
+        self.assertEqual(self._isFattyHere(b, fat1, 0, 1), True)
+        
+        #make fat0 have priority
+        print "priority about to be changed"
+        fat0.slidePriority = 5
+        b.normalize()
+        
+        #fat0 should now be below fat1
+        self.assertEqual(self._isFattyHere(b, fat0, 0, 0), True)
+        self.assertEqual(self._isFattyHere(b, fat1, 2, 1), True)
+        
 
 
 if __name__ == '__main__':
