@@ -30,7 +30,7 @@ class GameLayer(cocos.layer.Layer):
         self.add(self.bottomBoard)
         self.add(self.topSelector)
         self.add(self.bottomSelector)
-        self.bottomSelector.position = (0, 0)
+        self.bottomSelector.position = (0, pieceHeight)
         self.bottomBoard.position = (0, pieceHeight)
         self.topSelector.position = (0, (bottomBoard.height + 1) * pieceHeight)
         self.topBoard.position = (0, (bottomBoard.height + 1) * pieceHeight)
@@ -42,6 +42,12 @@ class GameLayer(cocos.layer.Layer):
 
         # Initialize event handlers.
         self.gameManager.switchTurn.addHandler(self.switchPlayer)
+        # When either board has changed, refresh the appearance of
+        # the corresponding selector.
+        topBoard.pieceUpdated.addHandler(
+                lambda x: self.topSelector.refresh())
+        bottomBoard.pieceUpdated.addHandler(
+                lambda x: self.bottomSelector.refresh())
 
     @property
     def currentBoard(self):
@@ -102,7 +108,7 @@ class GameLayer(cocos.layer.Layer):
         if keyName == "BACKSPACE": 
             # Delete a piece. Logic check is done by gameManager
             pos = [self.currentSelector.currentCol, self.currentSelector.currentRow]
-            self.gameManger.deletePiece(pos)
+            self.gameManager.deletePiece(pos)
         if keyName == "END": # End the turn.
             self.gameManager.endTurn()
 

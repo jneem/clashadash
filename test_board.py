@@ -93,6 +93,8 @@ class TestBoard(unittest.TestCase):
         def transformHandler(p): transformedPieces.append(p)
         b.normalize()
 
+        self.assertEqual(len(transformedPieces), 4)
+
     def testPieceUpdate(self):
         b = Board(3, 3)
         piece1 = DummyPiece(1, 1)

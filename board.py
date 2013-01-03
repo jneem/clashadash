@@ -30,6 +30,7 @@ class Board:
         # Event handlers that will be triggered each time a piece is
         # changed (added, removed, or moved). The callbacks should take
         # one unnamed argument, which is a set of pieces to which they apply.
+        # Pieces that have been removed will have position set to None.
         self.pieceUpdated = EventHook()
 
         # The set of pieces that have been updated since the last time
@@ -469,6 +470,7 @@ class Board:
         self.units.remove(piece)
         self._deleteFromGrid(piece)
         self._updatedPieces.add(piece)
+        piece.position = None
 
     def _piecesInRegion(self, offset, regionSize):
         """The set of pieces in the rectangle of the given size
