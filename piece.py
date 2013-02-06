@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 class Piece(object):
     """A piece is something that lives on the board.
 
@@ -31,7 +33,10 @@ class Piece(object):
                         its charged form have the same size. 
         """
 
-        self.name = description['name']
+        logging.debug('Creating a piece ' + str(description))
+
+        self.description = description
+        self.name = description.get('name', '')
         self.position = [0,0]
         self.size = (int(description['height']), int(description['width']))
         self.moveable = bool(description.get('moveable', False))

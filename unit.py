@@ -11,7 +11,7 @@ class Unit(Piece):
         Piece.__init__(self, description)
 
         self.color = color
-        self.chargeDescription = description['charge']
+        self.chargeDescription = dict(description['charge'])
         self.imageBase = description['imageBase']
 
     def chargingRegion(self):

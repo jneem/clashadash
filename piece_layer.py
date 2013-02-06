@@ -2,17 +2,23 @@ import cocos
 from cocos.sprite import Sprite
 from cocos.layer.util_layers import ColorLayer
 
+import logging
+
 colors = {
     'blue' : (0, 0, 255),
-    'red' : (255, 0, 0)
+    'red' : (255, 0, 0),
+    'white' : (255, 255, 255)
 }
 
 class PieceLayer(cocos.layer.Layer):
     def __init__(self, piece, width, height):
         super(PieceLayer, self).__init__()
         
+        logging.debug('New piece layer %d x %d, image name %s' % (width, height, piece.imageName()))
+
         # Pieces with the 'color' property get a background.
         if hasattr(piece, 'color'):
+            logging.debug('color ' + str(piece.color))
             c = colors[piece.color]
             bg = ColorLayer(c[0], c[1], c[2], 192, width=width, height=height)
             self.add(bg)

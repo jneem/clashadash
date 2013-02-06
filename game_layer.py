@@ -1,4 +1,5 @@
 import cocos
+import logging
 from board_layer import BoardLayer
 from selector_layer import SelectorLayer
 import pyglet as pyglet
@@ -22,20 +23,17 @@ class GameLayer(cocos.layer.Layer):
         self.gameManager = gameManager
 
         # Initialize selectors.
-        # The height (in pixels) of the selector is one square-worth
-        # taller than the height of the board.
-        height = (topBoard.height + 1) * pieceHeight
-        self.topSelector = SelectorLayer(topBoard, pieceHeight, pieceWidth, height, False)
-        self.bottomSelector = SelectorLayer(bottomBoard, pieceHeight, pieceWidth, height, True)
+        self.topSelector = SelectorLayer(topBoard, pieceHeight, pieceWidth, True)
+        self.bottomSelector = SelectorLayer(bottomBoard, pieceHeight, pieceWidth, False)
 
         self.add(self.topBoard)
         self.add(self.bottomBoard)
         self.add(self.topSelector)
         self.add(self.bottomSelector)
-        self.topSelector.position = (0, 0)
-        self.bottomSelector.position = (0, height)
-        self.topBoard.position = (0, pieceHeight)
-        self.bottomBoard.position = (0, height + pieceHeight)
+        self.bottomSelector.position = (0, 0)
+        self.bottomBoard.position = (0, pieceHeight)
+        self.topSelector.position = (0, (bottomBoard.height + 1) * pieceHeight)
+        self.topBoard.position = (0, (bottomBoard.height + 1) * pieceHeight)
 
         # Make the bottom player active initially.
         self.bottomSelector.toggleActive()
@@ -63,6 +61,8 @@ class GameLayer(cocos.layer.Layer):
 
     def on_key_press(self, key, modifiers):
         """Handles direction keys."""
+
+        # TODO: do key repetition when a key is held down.
         keyName = pyglet.window.key.symbol_string(key)
         if keyName == "LEFT":
             self.currentSelector.moveHolder("left")
@@ -82,6 +82,7 @@ class GameLayer(cocos.layer.Layer):
         """
 
         keyName = pyglet.window.key.symbol_string(key)
+        logging.debug('key "%s" released' % keyName)
         if keyName == "SPACE": # Pick up or drop the selected piece.
             if self.currentSelector.heldPiece is None:
                 self.currentSelector.pickUp()
@@ -92,8 +93,8 @@ class GameLayer(cocos.layer.Layer):
                     self.currentSelector.dropPiece()
                     self.gameManager.movePiece(piece, col)
 
-        if keyName == "ENTER": # Call pieces.
-            self.gameManager.callPieces(self.currentBoard)
+        if keyName == "RETURN": # Call pieces.
+            self.gameManager.callPieces()
         if keyName == "TAB": # Use mana
             if self.gameManager.useMana(): #if the logic works
                 #TODO: 

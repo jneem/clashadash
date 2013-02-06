@@ -4,6 +4,7 @@ Created on Thu May 17 17:50:36 2012
 
 @author: tran
 """
+import logging
 from event_hook import EventHook
 
 class GameManager:
@@ -145,11 +146,14 @@ class GameManager:
         self.numFusion += len(fusion)
     
     def _countLinks(self, unit, unitList):
-        """ Iterate over unitList and return number of links for unit.         
-        
-        Ignore unit if it also happens to be in unitList """         
+        """Return the number of links for a unit.
+
+        The number of links for a unit is the number of other charging units
+        that have the same color and will attack on the same turn.  A unit
+        isn't counted as a link for itself."""
+
         linkNum = 0
-        unitList = unitList.discard(unit)
+        unitList.discard(unit)
         for poozer in unitList:
             if (poozer.color == unit.color) and (poozer.turn == unit.turn):
                 linkNum += 1
@@ -186,7 +190,10 @@ class GameManager:
 
         Generate units one at a time, and check that they can be fit on board.
         """
-        pieceLeft = self.currentPlayer.effTotal
+
+        pieceLeft = self.currentPlayer.maxUnitTotal - len(self.currentBoard.units)
+        logging.debug('Calling %d pieces for player %s' % (pieceLeft, str(self.currentPlayer)))
+        addedPieces = pieceLeft > 0
         while pieceLeft > 0:
             unit = self.currentPlayer.getRandomUnit()
             col = self.currentBoard.colToAdd(unit)
@@ -194,6 +201,11 @@ class GameManager:
                 self.currentBoard.addPiece(unit, col)
                 pieceLeft = pieceLeft - 1
 
-        if self.currentPlayer.effTotal > 0:
+        # Assuming colToAdd works correctly, normalizing the board
+        # should not actually change anything.  However, we need to call
+        # it to make sure listeners get notified of all the new pieces.
+        self.currentBoard.normalize()
+
+        if addedPieces:
             self._updateMoves()
 

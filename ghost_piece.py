@@ -13,14 +13,18 @@ from piece import Piece
 
 class GhostPiece(Piece):
     
-    def __init__(self, description, piece):
-        """ Create a ghost of piece
-        its default position is that of piece. 
-        Initialize as a Piece
+    def __init__(self, piece):
+        """Create a ghost of piece.
+
+        The ghost's initial position is that of piece, but you can
+        update the ghost's position without affecting the piece's position.
         """
-        Piece.__init__(self, description)
+        Piece.__init__(self, piece.description)
         self.piece = piece
         self.position = list(piece.position)
+
+    def __getattr__(self, attr):
+        return self.piece.__getattribute__(attr)
         
     def chargingRegion(self):
         return self.piece.chargingRegion()

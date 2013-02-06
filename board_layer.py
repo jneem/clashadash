@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import cocos
+import logging
 import pyglet
 from piece_layer import PieceLayer
 from cocos.actions.interval_actions import MoveTo
@@ -48,7 +49,7 @@ class BoardLayer(cocos.layer.Layer):
         if self.reflect:
             return row * self.pieceHeight
         else:
-            return (self.board.height - row) * self.pieceHeight
+            return (self.board.height - (row + 1)) * self.pieceHeight
 
     def xAt(self, col):
         """The x coordinate of the left edge of the given column."""
@@ -89,14 +90,17 @@ class BoardLayer(cocos.layer.Layer):
         """
 
         if position is None:
+            logging.debug("Removing piece " + str(piece))
             self._deletePiece(piece)
             return 0
         elif piece in self.pieceLayers:
+            logging.debug("Moving piece %s to (%d,%d)" % (str(piece), position[0], position[1]))
             self._movePiece(piece, position)
             return self.slideTime
         else:
             # TODO: differentiate between pieces sliding on and
             # pieces appearing (because they were just charged)
+            logging.debug("Appearing piece %s at (%d,%d)" % (str(piece), position[0], position[1]))
             self._appearPiece(piece, position)
             return self.chargeTime
 

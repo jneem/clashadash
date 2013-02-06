@@ -167,14 +167,12 @@ class Board:
                 unit = self[i,j]
                 if unit is not None:
                     unitTop = self[i+unit.size[0],j]
-                    if unit.canMerge(unitTop): #if can merge
-                        #merge
+                    if unitTop and unit.canMerge(unitTop):
                         updated = True
-                        for k in range(i+unit.size[0], i+unit.size[0]+unitTop.size[0]):
-                            self[k,j] = None
+                        self._deleteFromGrid(unitTop)
                         unit.merge(unitTop)
                         self._deletePiece(unitTop)
-                    break
+                        break
         return updated
 
     def _shiftByPriority(self):
@@ -359,11 +357,17 @@ class Board:
         # If the piece belongs to the board, remove it from the
         # grid first, just in case it's already occupying the column
         # that we're adding it to.
-        fat = piece.size[1]
-        if piece in self.units:
+        deleted = False
+        if piece in self.units and self.grid[tuple(piece.position)] != None:
+            deleted = True
             self._deleteFromGrid(piece)
+
+        fat = piece.size[1]
         vacantRows = self.boardHeight()
         row = int(max(vacantRows[range(col, col+fat)]))
+
+        if deleted:
+            self._addToGrid(piece)
         return row
 
     def canAddPiece(self, piece, col):
@@ -422,8 +426,12 @@ class Board:
         row = piece.position[0]
         col = piece.position[1]
 
-        if any(self.grid[row:(row+tall), col:(col+fat)] != piece):
-            raise ValueError("Piece and board disagree on position")
+        # Raise an error if the piece thinks it's in a position that
+        # actually belongs to another piece.  (If the piece thinks it's
+        # in a position that's actually empty, don't complain.)
+        region = self.grid[row:(row+tall), col:(col+fat)].reshape(-1)
+        if any([u != None and u != piece for u in region]):
+            raise ValueError("Piece and board disagree on position", piece, piece.position)
 
         self.grid[row:(row+tall), col:(col+fat)] = None
 
@@ -470,6 +478,9 @@ class Board:
         col = offset[1]
         return self.getPieces(range(row,(row+regionSize[0])),
                               range(col,(col+regionSize[1])))
+
+    def _regionEmpty(self, offset, regionSize):
+        return bool(self._piecesInRegion(offset, regionSize))
 
     def _regionFull(self, offset, regionSize):
         """Checks whether the given region is full of pieces.
@@ -552,41 +563,47 @@ class Board:
 
         # Create charging formations. Resolve multiChargeable conflicts here.
         #sort chargingPieces by column to avoid update order problems
-        chargingPieces = set(sorted(list(chargingPieces), key = lambda piece: piece.position[1]))
+        chargingPieces = sorted(list(chargingPieces), key = lambda piece: piece.position[1])
+        chargedPieces = []
         for unit in chargingPieces:
-            # Remove the pieces used to charge this piece.
-            # Unless if it is also in the transforming OR the charging list
-            # AND the unit in front is multichargeable
-            if unit._multiChargeable is True:
+            # If this unit was used to charge something else, it may
+            # have been already removed from the board. In that case, we skip charging it.
+            if unit in self.units:
+                # Remove the pieces used to charge this piece.
+                # (unless it is also in the charging list AND the unit in front is multichargeable).
                 for x in self._chargers(unit):
-                    if x not in (chargingPieces or transformingPieces):
+                    if not (unit._multiChargeable and x in chargingPieces):
                         self._deletePiece(x)
-                    else:
-                        self._deleteFromGrid(x)
-            else: #unit not multiChargeable
-                for x in self._chargers(unit):
-                    if x in chargingPieces: #disable charging
-                        chargingPieces.remove(x)
-                    if x in transformingPieces:
-                        self._deleteFromGrid(x)
-                    else:
-                        self._deletePiece(x)
-           
-            self._replacePiece(unit, unit.charge()) 
-            #notify listeners that a charging formation has been formed
-            self.attackMade.callHandlers()                        
+                
+                charged = unit.charge()
+                self._replacePiece(unit, charged)
+                chargedPieces.append(charged)
+
+        self.attackMade.callHandlers(set(chargedPieces))
             
         # Create walls.
+        transformedPieces = []
         for unit in transformingPieces:
-            #if unit is existing on board
-            if self._existPiece(unit):
-                self._replacePiece(unit, unit.transform())
-            else: 
-                row = self._rowToAdd(unit, unit.position[1])
-                #if unit can be added back to the same column then add.
-                if row < self.height:
-                    pos = [row, unit.position[1]]
-                    self._appearPiece(unit, pos)
+            position = unit.position
+            if unit in self.units:
+                self._deletePiece(unit)
+
+            transformed = unit.transform()
+            if transformed.size[1] + position[1] > self.width:
+                # If the transformed piece is too fat, ignore it.
+                continue
+
+            # Try to place the transformed unit on the board, starting from the position
+            # of the original and then shifting backwards.
+            tall = transformed.size[0]
+            for row in range(position[0], self.height - tall + 1):
+                pos = (row, position[1])
+                if self._regionEmpty(self, pos, transformed.size):
+                    self._appearPiece(transformed, pos)
+                    transformedPieces.append(transformed)
+                    break
+
+        self.wallMade.callHandlers(set(transformedPieces))
                 
         return bool(chargingPieces or transformingPieces)
 
@@ -595,10 +612,8 @@ class Board:
         
         Only check the head square. 
         """
-        if self.grid[piece.position] is piece:
-            return True
-        else:
-            return False
+
+        return self.grid[piece.position] is piece
 
     def _appearPiece(self, piece, pos):
         """Place a new piece in the given position."""
@@ -626,7 +641,7 @@ class Board:
                 #make a fictious board with ghost pieces.
                 boardCopy = self.ghostBoard()
                 #make a ghost of the current piece
-                ghost = GhostPiece(piece.description, piece)
+                ghost = GhostPiece(piece)
                 #add ghost to boardCopy
                 boardCopy.addPiece(ghost, col)
                 #if no formations is created
@@ -637,13 +652,9 @@ class Board:
     def ghostBoard(self):
         """ Return a hard copy of board with ghost pieces """ 
         boardCopy = Board(self.height, self.width)
-        for i in xrange(self.height):
-            for j in xrange(self.width):
-                if self.grid[i,j] is not None:
-                    piece = self.grid[i,j]
-                    ghost = GhostPiece(piece.description, piece)
-                    boardCopy.grid = ghost
-                    boardCopy.units.add(ghost)
+        for u in self.units:
+            ghost = GhostPiece(u)
+            boardCopy._appearPiece(u, u.position)
         return boardCopy
 
         
