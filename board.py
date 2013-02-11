@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import logging
 from event_hook import EventHook
 from ghost_piece import GhostPiece
 
@@ -70,14 +71,15 @@ class Board:
             return None
 
     def getPieces(self, rows, cols):
-        """ Return a set of pieces on board in range [rows] x [cols]
-        remove None and redundancies """
-        units = set()
-        for i in rows:
-            for j in cols:
-                units.add(self[i,j])
-        #remove Nones
-        units.discard(None)
+        """ Return a LIST of pieces on board in range [rows] x [cols]
+        remove None and redundancies . Items scanned by column then by row, in the input order
+        """
+        units = list()
+        for j in cols:
+            for i in rows:
+		   if self[i,j] is not None:
+		       if self[i,j] not in units:
+			   units.append(self[i,j])
         return units
 
     def __setitem__(self, item, unit):
@@ -192,16 +194,10 @@ class Board:
         for j in range(ncol):  #for each column
             #get the units in column j
             unitCol = self.getPieces(range(nrow), [j])
-            if not unitCol:
-                continue #has no unit
-            unitCol = list(unitCol) #turn to a list instead of a set
-            #make sure the list has the same order as the current list
-            #i.e: sort by increasing row
-            unitCol = sorted(unitCol, key = lambda piece: piece.position[0])
+            if not unitCol: #column j has no unit
+                continue 
             #sort by decreasing priority
             unitCol = sorted(unitCol, key = lambda piece: piece.slidePriority, reverse = True)
-            if j == 1:
-                print "on column 1: " + str([x.name for x in unitCol])
             #copy this over to the board
             self[range(nrow), j] = None
             i = 0
@@ -220,9 +216,9 @@ class Board:
         trynum = 0
         while self._doAlignFatty(fatty):
             trynum = trynum + 1
-            print "fatty aligning attempt number " + str(trynum)
+            logging.debug( 'Done fatty alignment trial number %s' % trynum)
             if(trynum > 100):
-                raise MemoryError("attempt to realign fatty over 100 times")
+		logging.error('shiftByPriority attempting to realgin fatty over 100 times')
         return updated
 
     def _doAlignFatty(self, fatList):
@@ -232,6 +228,7 @@ class Board:
         updated = False
         for unit in fatList:
             if self[unit.position[0]+1,unit.position[1]+1] != unit: #if not aligned
+		logging.debug("Fatty named %s is not aligned." % unit.name)
                 #flag updated as True since we'll need another iteration
                 updated = True
                 #look up where the top corner is in the column
@@ -242,9 +239,7 @@ class Board:
                         topCornerLoc = i
                         break           
                 #if top corner is higher
-                print "fatty name " + unit.name
-                print "Top corner is " + str(topCornerLoc)
-                print "Expected corner is " + str(unit.position[0]+1)
+                logging.debug("His current top corner is in row %s. Correct row is %s" % (topCornerLoc, unit.position[0]+1))
                 if topCornerLoc > unit.position[0]+1:
                     #shift the leftside up as far as possible
                     delta = topCornerLoc - (unit.position[0]+1)
@@ -253,14 +248,13 @@ class Board:
                         if(self._canShiftUp(j-1,unit.position[0]+1+i, topCornerLoc)):
                             maxShift = i
                     #shift up by maxshift
-                    print "shifting the leftside of " + unit.name + " up"
-                    print "delta = " + str(delta)                    
-                    print "maxshift = " + str(maxShift)
+		    logging.debug("We need to shift his leftside up by %s. We can shift by %s" % (delta, maxShift))
                     if(maxShift > 0):
                         shifted = self._doShiftUp(j-1, unit.position[0], unit.position[0]+maxShift)
-                        print shifted
+                        logging.debug("Successfully shifted: %s" % shifted)
                     if maxShift == 0 or not shifted: 
                         #if cannot shift the left side up, then shift the rightside down
+                        logging.debug("Cannot shift the left side up. Shifting the right side down")
                         self._doShiftDown(j, topCornerLoc-1,unit.position[0], 2)
                 #if top corner is lower
                 if topCornerLoc < unit.position[0] +1:
@@ -271,10 +265,13 @@ class Board:
                         if(self._canShiftUp(j, topCornerLoc-1, topCornerLoc-1+maxShift)):
                             maxShift = i
                     #shift up by maxshift
+                    logging.debug("We need to shift his rightside up by %s. We can shift by %s" % (delta, maxShift))
                     if(maxShift > 0):                    
                         shifted = self._doShiftUp(j, topCornerLoc-1, topCornerLoc-1+maxShift)
+                        logging.debug("Successfully shifted: %s" % shifted)
                     if maxShift == 0 or not shifted:
                         #then shift the leftside down
+                        logging.debug("Cannot shift right side up. Shifting the left side down")
                         self._doShiftDown(j-1,unit.position[0], topCornerLoc+maxShift,2)
         return updated
 
@@ -300,9 +297,6 @@ class Board:
         Return True if did some changes
         """
         shifted = False
-        print str(oldRow)
-        print str(newRow)
-        print str(col)
         nrow = self.grid.shape[0]
         delta = newRow - oldRow
         for i in reversed(range(oldRow, nrow)):
@@ -390,7 +384,8 @@ class Board:
         """
 
         if not self.canAddPiece(piece, col):
-            raise IndexError("Trying to add piece outside of board")
+	    logging.error("Trying to add piece outside of board")
+	    raise IndexError("Trying to add piece outside of board")
             
         row = self._rowToAdd(piece, col)
         piece.position = [row, col]
@@ -413,7 +408,7 @@ class Board:
             self.addPiece(piece, toColumn)
             self.normalize()
         else:
-            raise IndexError("Trying to add piece outside of board")
+	    logging.error("Trying to add piece outside of board")
 
     def _deleteFromGrid(self, piece):
         """At the piece's current position, set the grid to None.
@@ -471,7 +466,7 @@ class Board:
         self._updatedPieces.add(piece)
 
     def _piecesInRegion(self, offset, regionSize):
-        """The set of pieces in the rectangle of the given size
+        """The list of pieces in the rectangle of the given size
         at the given offset."""
 
         row = offset[0]
@@ -501,7 +496,7 @@ class Board:
                 # returns true.
 
     def _chargers(self, piece):
-        """The set of pieces in the given piece's charging region."""
+        """The list of pieces in the given piece's charging region."""
 
         # Add piece.size[0] because the charge region starts from the square
         # behind the piece.
@@ -515,7 +510,7 @@ class Board:
         return self._regionFull(chargePosition, piece.chargingRegion())
 
     def _transformers(self, piece):
-        """The set of pieces in the given piece's transform region."""
+        """The list of pieces in the given piece's transform region."""
 
         # Add piece.size[1] because the charge region starts from the square
         # to the right of the piece.
@@ -654,7 +649,18 @@ class Board:
         boardCopy = Board(self.height, self.width)
         for u in self.units:
             ghost = GhostPiece(u)
-            boardCopy._appearPiece(u, u.position)
+            boardCopy._appearPiece(ghost, u.position)
         return boardCopy
-
+    
+    def selfConsistent(self):
+	""" Return true if board and units agree on their positions"""
+	for u in self.units:
+	    row,col = u.position
+	    uheight, uwidth = u.size
+	    #check all squares that this unit should occupy
+	    for i in range(row, row + uheight):
+		for j in range(col, col + uwidth):
+		    if self[i,j] != u:
+			raise ValueError("piece %s position not aligned with board", u.name)
+	return True
         
