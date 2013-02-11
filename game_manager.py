@@ -7,7 +7,7 @@ Created on Thu May 17 17:50:36 2012
 import logging
 from event_hook import EventHook
 
-class GameManager:
+class GameManager(object):
     """Runs the game.
 
     Keeps track of whose turn it is and how many moves they have left.
@@ -73,8 +73,13 @@ class GameManager:
         player has left, and switches players if necessary.
         """
         if self.currentBoard[position] is not None:
+            logging.debug("Deleting the piece %s at position %s"
+                          % (self.currentBoard[position], position))
+
             self.currentBoard.deletePiece(self.currentBoard[position])
             self._updateMoves(offset = 0)
+        else:
+            logging.debug("Tried to delete an empty square %s" % position)
 
     def canPickUp(self, position):
         """Checks if the current player can pick up a given piece."""
@@ -119,20 +124,21 @@ class GameManager:
         """ Update currentPlayer's mana depend on the event triggered. 
         
         Event types: "link", "fuse", "move", "useMana" """
-        if evt == "link":
-            self.currentPlayer.mana += self.currentPlayer.manaFactor[0]*num
-            if self.currentPlayer.mana >= self.currentPlayer.maxMana:
-                self.currentPlayer.mana = self.currentPlayer.mana
-        elif evt == "fuse":
-            self.currentPlayer.mana += self.currentPlayer.manaFactor[1]*num
-            if self.currentPlayer.mana >= self.currentPlayer.maxMana:
-                self.currentPlayer.mana = self.currentPlayer.mana            
-        elif evt == "move": 
-            self.currentPlayer.mana += self.currentPlayer.manaFactor[2]*num
-            if self.currentPlayer.mana >= self.currentPlayer.maxMana:
-                self.currentPlayer.mana = self.currentPlayer.mana      
-        elif evt == "useMana": #only called if mana is full
+
+        if evt == "useMana": # We should only be here if the mana is full.
             self.currentPlayer.mana = 0
+        else:
+            logging.debug('updating mana for event "%s" x%s' % (evt, num))
+            factor = 0
+            if evt == "link":
+                factor = self.currentPlayer.manaFactor[0]
+            elif evt == "fuse":
+                factor = self.currentPlayer.manaFactor[1]
+            elif evt == "move":
+                factor = self.currentPlayer.manaFactor[2]
+            logging.debug('increment is %s' % factor * num)
+            self.currentPlayer.mana += factor * num
+            logging.debug('new mana is %s' % self.currentPlayer.mana)
             
     def useMana(self):
         """ Use mana if allowed. Return True if can use, False otherwise """

@@ -26,7 +26,9 @@ class ChargingUnit(Piece):
         self.toughness = self.chargeAtTurn(self.turn)
         
     def canMerge(self, other):
-        return self.base_size == other.base_size and self.color == other.color
+        return (hasattr(other, 'base_size') and
+                self.base_size == other.base_size and
+                self.color == other.color)
         
     def defaultChargeAtTurn(self, n):
         """

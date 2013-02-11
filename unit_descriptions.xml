@@ -13,6 +13,7 @@
             <height>3</height>
             <width>1</width>
             <turns>3</turns>
+            <slidePriority>1</slidePriority>
             <imageBase>swordCharging</imageBase>
         </charge>
     </unit>

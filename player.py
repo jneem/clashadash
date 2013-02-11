@@ -9,12 +9,12 @@ from event_hook import EventHook
 import numpy as np
 import random
 
-class Player:
+class Player(object):
     """ Model class. Has player data: life, number of moves, special equip,
     champions available, mana,
     Has unit generating function. """
 
-    def __init__(self, unitFactory, life=100, maxMoves=3, maxMana=100,
+    def __init__(self, unitFactory, maxLife=100, maxMoves=3, maxMana=100,
             maxUnitTotal=32, manaFactor=(1,1,1),
             baseWeights=[], baseNames=[],
             specialWeights=[], specialNames=[], specialRarity=[]):
@@ -30,7 +30,7 @@ class Player:
                 (TODO: consider making this a dict)
         """
 
-        self.life = life
+        self.maxLife = maxLife
         self.maxMoves = maxMoves
         self.maxMana = maxMana
         self.maxUnitTotal = maxUnitTotal #max total number of units can call
@@ -53,14 +53,40 @@ class Player:
         self.unitFactory = unitFactory
 
         #set effective params
-        self.mana = 0
+        self._mana = 0
+        self._life = maxLife
         self.usedMoves = 0
         # After losing special units, there is a temporary penalty to
         # its weight; effWeights keeps track of the possibly penalized value.
         self.effWeights = self.specialWeights.copy() #effective unit weights
 
-        #event emitters
+        # Event emitters
         self.doneTurn = EventHook()
+
+        # Callbacks take a single argument that is the new mana value.
+        self.manaChanged = EventHook()
+
+        # Callbacks take a single argument that is the new life value.
+        self.lifeChanged = EventHook()
+
+    @property
+    def mana(self):
+        return self._mana
+
+    @mana.setter
+    def mana(self, m):
+        m = min(m, self.maxMana)
+        self._mana = m
+        self.manaChanged.callHandlers(m)
+
+    @property
+    def life(self):
+        return self._life
+
+    @life.setter
+    def life(self, l):
+        self._life = l
+        self.lifeChanged.callHandlers(l)
 
     def setGameManager(self, gameManager):
         self.gameManager = gameManager

@@ -100,6 +100,8 @@ class TestBoard(unittest.TestCase):
         def transformHandler(p): transformedPieces.append(p)
         b.normalize()
 
+        self.assertEqual(len(transformedPieces), 4)
+
     #-- piece update test. Includes movePiece and deletePiece
     #@unittest.skip("")
     def testPieceUpdate(self):

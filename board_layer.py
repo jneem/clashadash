@@ -4,9 +4,11 @@ import cocos
 import logging
 import pyglet
 from piece_layer import PieceLayer
+from board_position_layer import BoardPositionLayer
 from cocos.actions.interval_actions import MoveTo
+from cocos.layer.util_layers import ColorLayer
 
-class BoardLayer(cocos.layer.Layer):
+class BoardLayer(BoardPositionLayer):
     """The visual representation of a Board."""
 
     def __init__(self, board, pieceHeight, pieceWidth, reflect):
@@ -18,13 +20,14 @@ class BoardLayer(cocos.layer.Layer):
             the top.
         """
 
-        super(BoardLayer, self).__init__()
+        super(BoardLayer, self).__init__(pieceHeight, pieceWidth, reflect)
 
         self.board = board
-        self.pieceWidth = pieceWidth
-        self.pieceHeight = pieceHeight
         self.pieceLayers = {}
-        self.reflect = reflect
+        self.bgLayer = ColorLayer(255, 255, 255, 80,
+                                  width=(pieceWidth * board.width),
+                                  height=(pieceHeight * board.height))
+        self.add(self.bgLayer)
 
         self.slideTime = 0.2
         self.chargeTime = 0.2
@@ -44,23 +47,14 @@ class BoardLayer(cocos.layer.Layer):
         # Set up handlers to catch future changes to the board.
         board.pieceUpdated.addHandler(self._updateNotification)
 
-    def yAt(self, row):
-        """The y coordinate of the bottom edge of the given row."""
-        if self.reflect:
-            return row * self.pieceHeight
-        else:
-            return (self.board.height - (row + 1)) * self.pieceHeight
-
-    def xAt(self, col):
-        """The x coordinate of the left edge of the given column."""
-        return col * self.pieceWidth
-
     def _updateNotification(self, pieces):
         """Called whenever the board is updated."""
 
         # We need to access the positions now because they might have changed
         # by the time we get around to animating the motion.
-        piecePositions = [(p, tuple(p.position)) for p in pieces]
+        copyPos = lambda pos: None if pos is None else tuple(pos)
+        piecePositions = [(p, copyPos(p.position)) for p in pieces]
+        logging.debug("Board_layer updating pieces " + str(piecePositions))
         self.animationQueue.append(set(piecePositions))
         if not self.isAnimating:
             self.isAnimating = True
@@ -105,7 +99,9 @@ class BoardLayer(cocos.layer.Layer):
             return self.chargeTime
 
     def _addPiece(self, piece):
-        pieceLayer = PieceLayer(piece, self.pieceWidth, self.pieceHeight)
+        pieceLayer = PieceLayer(piece,
+                                self.pieceWidth * piece.size[1],
+                                self.pieceHeight * piece.size[0])
         self.pieceLayers[piece] = pieceLayer
         self.add(pieceLayer)
 
@@ -117,15 +113,17 @@ class BoardLayer(cocos.layer.Layer):
 
     def _appearPiece(self, piece, position):
         # TODO: duplicate code from addPiece
-        pieceLayer = PieceLayer(piece, self.pieceWidth, self.pieceHeight)
+        pieceLayer = PieceLayer(piece,
+                                self.pieceWidth * piece.size[1],
+                                self.pieceHeight * piece.size[0])
         self.pieceLayers[piece] = pieceLayer
         self.add(pieceLayer)
-        pieceLayer.y = self.yAt(position[0])
+        pieceLayer.y = self.yAt(position[0], piece.size[0])
         pieceLayer.x = self.xAt(position[1])
 
     def _movePiece(self, piece, position):
         pl = self.pieceLayers[piece]
-        y = self.yAt(position[0])
+        y = self.yAt(position[0], piece.size[0])
         x = self.xAt(position[1])
         pl.do(MoveTo((x, y), self.slideTime))
 

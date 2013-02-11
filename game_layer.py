@@ -2,7 +2,23 @@ import cocos
 import logging
 from board_layer import BoardLayer
 from selector_layer import SelectorLayer
+from meter_layer import MeterLayer
 import pyglet as pyglet
+
+# See layout.svg for a diagram of all these constants.
+GAME_WIDTH = 1024
+GAME_HEIGHT = 768
+
+BOARD_WIDTH = 512
+BOARD_HEIGHT = 288
+
+BOARD_GAP = 48
+TOP_MARGIN = (GAME_HEIGHT - 2 * BOARD_HEIGHT - BOARD_GAP) / 2
+BOTTOM_MARGIN = TOP_MARGIN
+
+LEFT_MARGIN = (GAME_WIDTH - BOARD_WIDTH) / 2
+RIGHT_MARGIN = LEFT_MARGIN
+
 
 class GameLayer(cocos.layer.Layer):
     """ Creates a displayable object containing the two board layers,
@@ -13,8 +29,11 @@ class GameLayer(cocos.layer.Layer):
     """
 
     is_event_handler = True
-    def __init__(self, bottomBoard, topBoard, pieceHeight, pieceWidth, gameManager):
+    def __init__(self, bottomPlayer, bottomBoard, topPlayer, topBoard, gameManager):
         super(GameLayer, self).__init__()
+
+        pieceWidth = BOARD_WIDTH / bottomBoard.width
+        pieceHeight = BOARD_HEIGHT / bottomBoard.height
 
         self.topBoard = BoardLayer(topBoard, pieceHeight, pieceWidth, True)
         self.bottomBoard = BoardLayer(bottomBoard, pieceHeight, pieceWidth, False)
@@ -30,18 +49,54 @@ class GameLayer(cocos.layer.Layer):
         self.add(self.bottomBoard)
         self.add(self.topSelector)
         self.add(self.bottomSelector)
-        self.bottomSelector.position = (0, 0)
-        self.bottomBoard.position = (0, pieceHeight)
-        self.topSelector.position = (0, (bottomBoard.height + 1) * pieceHeight)
-        self.topBoard.position = (0, (bottomBoard.height + 1) * pieceHeight)
+        self.bottomBoard.position = (LEFT_MARGIN, BOTTOM_MARGIN)
+        self.bottomSelector.position = (LEFT_MARGIN, BOTTOM_MARGIN)
+        self.topBoard.position = (LEFT_MARGIN, BOTTOM_MARGIN + BOARD_HEIGHT + BOARD_GAP)
+        self.topSelector.position = tuple(self.topBoard.position)
 
         # Make the bottom player active initially.
         self.bottomSelector.toggleActive()
         self.currentSelector = self.bottomSelector
         self.otherSelector = self.topSelector
 
+        self._addPlayerInfo(bottomPlayer, True)
+        self._addPlayerInfo(topPlayer, False)
+
         # Initialize event handlers.
         self.gameManager.switchTurn.addHandler(self.switchPlayer)
+        # When either board has changed, refresh the appearance of
+        # the corresponding selector.
+        topBoard.pieceUpdated.addHandler(
+                lambda x: self.topSelector.refresh())
+        bottomBoard.pieceUpdated.addHandler(
+                lambda x: self.bottomSelector.refresh())
+
+    def _addPlayerInfo(self, player, isBottomPlayer):
+        """Add the player display (life, mana, etc.) layers to the game.
+        """
+
+        lifeMeter = MeterLayer(192, 16, player.maxLife,
+                               (255, 255, 255, 127), # background color
+                               (255, 0, 0, 255),     # empty life color
+                               (0, 255, 0, 255))     # full life color
+        lifeMeter.value = player.life
+        self.add(lifeMeter)
+        player.lifeChanged.addHandler(lambda x: lifeMeter.setValue(x))
+
+        manaMeter = MeterLayer(192, 16, player.maxMana,
+                               (255, 255, 255, 127), # background color
+                               (130, 130, 130, 255), # empty mana color
+                               (0, 0, 255, 255))     # full mana color
+        manaMeter.value = player.mana
+        self.add(manaMeter)
+        player.manaChanged.addHandler(lambda x: manaMeter.setValue(x))
+
+        boardY = BOTTOM_MARGIN
+        if not isBottomPlayer:
+            boardY += BOARD_HEIGHT + BOARD_GAP
+
+        lifeMeter.position = (32, boardY + 112 + 16 + 32)
+        manaMeter.position = (32, boardY + 112)
 
     @property
     def currentBoard(self):
@@ -101,8 +156,8 @@ class GameLayer(cocos.layer.Layer):
                 pass
         if keyName == "BACKSPACE": 
             # Delete a piece. Logic check is done by gameManager
-            pos = [self.currentSelector.currentCol, self.currentSelector.currentRow]
-            self.gameManger.deletePiece(pos)
+            pos = [self.currentSelector.currentRow, self.currentSelector.currentCol]
+            self.gameManager.deletePiece(pos)
         if keyName == "END": # End the turn.
             self.gameManager.endTurn()
 

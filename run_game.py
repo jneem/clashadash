@@ -13,12 +13,12 @@ cocos.director.director.init(width=1024, height=768)
 unit_fac = UnitFactory('unit_descriptions.xml')
 
 player1 = Player(baseWeights=[3], baseNames=['Swordsman'],
-        maxUnitTotal=5,
+        maxUnitTotal=20, maxMana=5,
         specialWeights=[10], specialNames=['Swordsman'], specialRarity=[10],
         unitFactory=unit_fac)
         
 player2 = Player(baseWeights=[3], baseNames=['Swordsman'],
-        maxUnitTotal=5,
+        maxUnitTotal=20, maxMana=5,
         specialWeights=[10], specialNames=['Swordsman'], specialRarity=[10],
         unitFactory=unit_fac)
 
@@ -26,7 +26,7 @@ board1 = Board(6, 8)
 board2 = Board(6, 8)
 
 manager = GameManager(player1, board1, player2, board2)
-game_layer = GameLayer(board1, board2, 48, 64, manager)
+game_layer = GameLayer(player1, board1, player2, board2, manager)
 
 main_scene = cocos.scene.Scene(game_layer)
 cocos.director.director.run(main_scene)

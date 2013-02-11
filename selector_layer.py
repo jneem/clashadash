@@ -10,11 +10,12 @@ transparent colored mask on the selected piece.
 
 import cocos
 import logging
+from board_position_layer import BoardPositionLayer
 from cocos.sprite import Sprite
 from cocos.layer.util_layers import ColorLayer
 from event_hook import EventHook
 
-class SelectorLayer(cocos.layer.Layer):
+class SelectorLayer(BoardPositionLayer):
     def __init__(self, board, pieceHeight, pieceWidth, reflect):
         """Creates a SelectorLayer.
 
@@ -23,16 +24,15 @@ class SelectorLayer(cocos.layer.Layer):
         pieceHeight -- the height (in pixels) of a square on the board.
         boardHeight -- the height (in squares) of the Board.
         reflect -- if False, row 0 will be displayed at the top.
-
         """
 
-        super(SelectorLayer, self).__init__()
+        super(SelectorLayer, self).__init__(pieceHeight, pieceWidth, reflect)
         self.board = board
-        self.pieceWidth = pieceWidth
-        self.pieceHeight = pieceHeight
-        self.reflect = reflect
         self.currentCol = 0
         self.currentRow = board.height - 1
+
+        # True if we are currently the active player.
+        self.active = False
 
         self._holder = None
         self._setupHolder()
@@ -43,8 +43,6 @@ class SelectorLayer(cocos.layer.Layer):
         # The piece that we are currently holding.
         self._heldPiece = None
 
-        # True if we are currently the active player.
-        self.active = False
 
     @property
     def heldPiece(self):
@@ -65,17 +63,8 @@ class SelectorLayer(cocos.layer.Layer):
 
     def toggleActive(self):
         self.active = not self.active
-
-    def yAt(self, row):
-        """The y coordinate of the bottom edge of the given row."""
-        if self.reflect:
-            return row * self.pieceHeight
-        else:
-            return (self.board.height - row) * self.pieceHeight
-
-    def xAt(self, col):
-        """The x coordinate of the left edge of the given column."""
-        return col * self.pieceWidth
+        self._updateSquare()
+        self._updateHolder()
 
     def _updateSquare(self):
         """Update the position and size of the square layer."""
@@ -102,7 +91,9 @@ class SelectorLayer(cocos.layer.Layer):
         self._square = ColorLayer(255, 255, 255, 168,
                 width=width, height=height)
         self.add(self._square)
-        self._square.position = (self.xAt(col), self.yAt(row))
+
+        self._square.position = (self.xAt(col), self.yAt(row, tall))
+        self._square.visible = self.active
 
     def _updateHolder(self):
         """Update the position of the holder layer."""
@@ -134,6 +125,12 @@ class SelectorLayer(cocos.layer.Layer):
         elif direction == "up":
             if self.currentRow < self.board.height - 1:
                 self.currentRow += 1
+
+        self._updateHolder()
+        self._updateSquare()
+
+    def refresh(self):
+        """Update the appearance to reflect any changes in the board."""
 
         self._updateHolder()
         self._updateSquare()

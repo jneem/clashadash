@@ -31,6 +31,7 @@ class Board:
         # Event handlers that will be triggered each time a piece is
         # changed (added, removed, or moved). The callbacks should take
         # one unnamed argument, which is a set of pieces to which they apply.
+        # Pieces that have been removed will have position set to None.
         self.pieceUpdated = EventHook()
 
         # The set of pieces that have been updated since the last time
@@ -464,6 +465,7 @@ class Board:
         self.units.remove(piece)
         self._deleteFromGrid(piece)
         self._updatedPieces.add(piece)
+        piece.position = None
 
     def _piecesInRegion(self, offset, regionSize):
         """The list of pieces in the rectangle of the given size
@@ -628,6 +630,7 @@ class Board:
         
         Return None if cannot be added anywhere.
         """
+        logging.debug(str([u.position for u in self.units]))
         #choose a random ordering of the columns
         columnList = list(np.random.permutation(self.width))
         for col in columnList:
@@ -639,7 +642,7 @@ class Board:
                 ghost = GhostPiece(piece)
                 #add ghost to boardCopy
                 boardCopy.addPiece(ghost, col)
-                #if no formations is created
+                #if no formations are created
                 if not boardCopy._createFormations():
                     return col
         return None
