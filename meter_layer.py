@@ -1,5 +1,6 @@
 import cocos
 import pyglet
+import logging
 from pyglet.graphics import *
 
 # TODO: add text instead of just a bar.
