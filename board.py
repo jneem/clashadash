@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import logging
 from event_hook import EventHook
 from ghost_piece import GhostPiece
 
@@ -635,6 +636,7 @@ class Board:
         
         Return None if cannot be added anywhere.
         """
+        logging.debug(str([u.position for u in self.units]))
         #choose a random ordering of the columns
         columnList = list(np.random.permutation(self.width))
         for col in columnList:
@@ -646,7 +648,7 @@ class Board:
                 ghost = GhostPiece(piece)
                 #add ghost to boardCopy
                 boardCopy.addPiece(ghost, col)
-                #if no formations is created
+                #if no formations are created
                 if not boardCopy._createFormations():
                     return col
         return None
@@ -656,7 +658,7 @@ class Board:
         boardCopy = Board(self.height, self.width)
         for u in self.units:
             ghost = GhostPiece(u)
-            boardCopy._appearPiece(u, u.position)
+            boardCopy._appearPiece(ghost, u.position)
         return boardCopy
 
         

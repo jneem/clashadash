@@ -49,7 +49,7 @@ class MeterLayer(cocos.layer.Layer):
 
     def _updateBar(self):
         # Interpolate between the full and empty colors depending on the current value.
-        fraction = float(self._value / self._maxValue)
+        fraction = float(self._value) / self._maxValue
         color = tuple(int(round(self._fullColor[i]*fraction + self._emptyColor[i] * (1-fraction))) for i in range(4))
 
         # Interpolate between the full and empty widths.
@@ -65,6 +65,12 @@ class MeterLayer(cocos.layer.Layer):
 
     @value.setter
     def value(self, v):
+        logging.debug("updating meter to %s/%s" % (v, self._maxValue))
         self._value = v
         self._updateBar()
+
+    # Provide a function for setting the value, since assignments can't
+    # be used in lambdas.
+    def setValue(self, v):
+        self.value = v
 

@@ -81,6 +81,7 @@ class GameLayer(cocos.layer.Layer):
                                (0, 255, 0, 255))     # full life color
         lifeMeter.value = player.life
         self.add(lifeMeter)
+        player.lifeChanged.addHandler(lambda x: lifeMeter.setValue(x))
 
         manaMeter = MeterLayer(192, 16, player.maxMana,
                                (255, 255, 255, 127), # background color
@@ -88,6 +89,7 @@ class GameLayer(cocos.layer.Layer):
                                (0, 0, 255, 255))     # full mana color
         manaMeter.value = player.mana
         self.add(manaMeter)
+        player.manaChanged.addHandler(lambda x: manaMeter.setValue(x))
 
         boardY = BOTTOM_MARGIN
         if not isBottomPlayer:
