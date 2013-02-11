@@ -31,6 +31,9 @@ class SelectorLayer(BoardPositionLayer):
         self.currentCol = 0
         self.currentRow = board.height - 1
 
+        # True if we are currently the active player.
+        self.active = False
+
         self._holder = None
         self._setupHolder()
 
@@ -40,8 +43,6 @@ class SelectorLayer(BoardPositionLayer):
         # The piece that we are currently holding.
         self._heldPiece = None
 
-        # True if we are currently the active player.
-        self.active = False
 
     @property
     def heldPiece(self):
@@ -62,6 +63,8 @@ class SelectorLayer(BoardPositionLayer):
 
     def toggleActive(self):
         self.active = not self.active
+        self._updateSquare()
+        self._updateHolder()
 
     def _updateSquare(self):
         """Update the position and size of the square layer."""
@@ -90,6 +93,7 @@ class SelectorLayer(BoardPositionLayer):
         self.add(self._square)
 
         self._square.position = (self.xAt(col), self.yAt(row, tall))
+        self._square.visible = self.active
 
     def _updateHolder(self):
         """Update the position of the holder layer."""

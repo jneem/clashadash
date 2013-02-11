@@ -14,7 +14,7 @@ class Player:
     champions available, mana,
     Has unit generating function. """
 
-    def __init__(self, unitFactory, life=100, maxMoves=3, maxMana=100,
+    def __init__(self, unitFactory, maxLife=100, maxMoves=3, maxMana=100,
             maxUnitTotal=32, manaFactor=(1,1,1),
             baseWeights=[], baseNames=[],
             specialWeights=[], specialNames=[], specialRarity=[]):
@@ -30,7 +30,7 @@ class Player:
                 (TODO: consider making this a dict)
         """
 
-        self.life = life
+        self.maxLife = maxLife
         self.maxMoves = maxMoves
         self.maxMana = maxMana
         self.maxUnitTotal = maxUnitTotal #max total number of units can call
@@ -54,6 +54,7 @@ class Player:
 
         #set effective params
         self.mana = 0
+        self.life = maxLife
         self.usedMoves = 0
         # After losing special units, there is a temporary penalty to
         # its weight; effWeights keeps track of the possibly penalized value.

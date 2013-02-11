@@ -73,8 +73,13 @@ class GameManager:
         player has left, and switches players if necessary.
         """
         if self.currentBoard[position] is not None:
+            logging.debug("Deleting the piece %s at position %s"
+                          % (self.currentBoard[position], position))
+
             self.currentBoard.deletePiece(self.currentBoard[position])
             self._updateMoves(offset = 0)
+        else:
+            logging.debug("Tried to delete an empty square %s" % position)
 
     def canPickUp(self, position):
         """Checks if the current player can pick up a given piece."""

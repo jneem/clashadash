@@ -6,6 +6,7 @@ import pyglet
 from piece_layer import PieceLayer
 from board_position_layer import BoardPositionLayer
 from cocos.actions.interval_actions import MoveTo
+from cocos.layer.util_layers import ColorLayer
 
 class BoardLayer(BoardPositionLayer):
     """The visual representation of a Board."""
@@ -23,6 +24,10 @@ class BoardLayer(BoardPositionLayer):
 
         self.board = board
         self.pieceLayers = {}
+        self.bgLayer = ColorLayer(255, 255, 255, 80,
+                                  width=(pieceWidth * board.width),
+                                  height=(pieceHeight * board.height))
+        self.add(self.bgLayer)
 
         self.slideTime = 0.2
         self.chargeTime = 0.2

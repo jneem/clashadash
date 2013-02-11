@@ -26,7 +26,7 @@ board1 = Board(6, 8)
 board2 = Board(6, 8)
 
 manager = GameManager(player1, board1, player2, board2)
-game_layer = GameLayer(board1, board2, 48, 64, manager)
+game_layer = GameLayer(player1, board1, player2, board2, manager)
 
 main_scene = cocos.scene.Scene(game_layer)
 cocos.director.director.run(main_scene)
