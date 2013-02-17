@@ -21,7 +21,7 @@ class GhostPiece(Piece):
         """
         Piece.__init__(self, piece.description)
         self.piece = piece
-        self.position = list(piece.position)
+        self.position = None if piece.position is None else list(piece.position)
 
     def __getattr__(self, attr):
         return self.piece.__getattribute__(attr)

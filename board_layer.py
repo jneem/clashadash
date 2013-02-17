@@ -83,27 +83,42 @@ class BoardLayer(BoardPositionLayer):
         Returns the number of seconds needed for the animation.
         """
 
+        print(str(piece) + str(position))
+
         if position is None:
             logging.debug("Removing piece " + str(piece))
             self._deletePiece(piece)
             return 0
         elif piece in self.pieceLayers:
-            logging.debug("Moving piece %s to (%d,%d)" % (str(piece), position[0], position[1]))
+            # If the piece has changed column, slide it in from the top of the board.
+            # Otherwise, just slide it from the old position to the new one.
+            if position[1] != piece.oldColumn:
+                pos = (self.board.height, position[1])
+                self._warpPiece(piece, pos)
+
             self._movePiece(piece, position)
             return self.slideTime
         else:
             # TODO: differentiate between pieces sliding on and
             # pieces appearing (because they were just charged)
-            logging.debug("Appearing piece %s at (%d,%d)" % (str(piece), position[0], position[1]))
             self._appearPiece(piece, position)
             return self.chargeTime
 
-    def _addPiece(self, piece):
+    def _createPieceLayer(self, piece):
+        """Create a PieceLayer from the given piece, add it to my display list
+        and return it."""
+
         pieceLayer = PieceLayer(piece,
                                 self.pieceWidth * piece.size[1],
                                 self.pieceHeight * piece.size[0])
         self.pieceLayers[piece] = pieceLayer
         self.add(pieceLayer)
+        return pieceLayer
+
+
+
+    def _addPiece(self, piece):
+        pieceLayer = self._createPieceLayer(piece)
 
         # For a better visual cue, place the piece at the top of its
         # column, then animate it into the correct position.
@@ -112,20 +127,28 @@ class BoardLayer(BoardPositionLayer):
         self.movePiece(piece)
 
     def _appearPiece(self, piece, position):
-        # TODO: duplicate code from addPiece
-        pieceLayer = PieceLayer(piece,
-                                self.pieceWidth * piece.size[1],
-                                self.pieceHeight * piece.size[0])
-        self.pieceLayers[piece] = pieceLayer
-        self.add(pieceLayer)
+
+        logging.debug("Appearing piece %s at (%d,%d)" % (str(piece), position[0], position[1]))
+        pieceLayer = self._createPieceLayer(piece)
         pieceLayer.y = self.yAt(position[0], piece.size[0])
         pieceLayer.x = self.xAt(position[1])
 
     def _movePiece(self, piece, position):
+        """Slide a piece from its current position to a new one."""
+
+        logging.debug("Moving piece %s to (%d,%d)" % (str(piece), position[0], position[1]))
         pl = self.pieceLayers[piece]
         y = self.yAt(position[0], piece.size[0])
         x = self.xAt(position[1])
         pl.do(MoveTo((x, y), self.slideTime))
+
+    def _warpPiece(self, piece, position):
+        """Move a piece instantaneously to a new position."""
+
+        logging.debug("Warping piece %s to (%d,%d)" % (str(piece), position[0], position[1]))
+        pl = self.pieceLayers[piece]
+        pl.y = self.yAt(position[0], piece.size[0])
+        pl.x = self.xAt(position[1])
 
     def _deletePiece(self, piece):
         pl = self.pieceLayers[piece]

@@ -37,13 +37,38 @@ class Piece(object):
 
         self.description = description
         self.name = description.get('name', '')
-        self.position = [0,0]
+        self.position = None
+        self.oldPosition = None
         self.size = (int(description['height']), int(description['width']))
         self.moveable = bool(description.get('moveable', False))
         self.toughness = int(description.get('toughness', 0))
         self.slidePriority = int(description.get('slidePriority', 0))
         self._multiChargeable = bool(description.get('multiChargeable', False))
         self.image = description.get('image', '')
+
+    @property
+    def row(self):
+        if self.position is not None:
+            return self.position[0]
+        return None
+
+    @property
+    def column(self):
+        if self.position is not None:
+            return self.position[1]
+        return None
+
+    @property
+    def oldRow(self):
+        if self.oldPosition is not None:
+            return self.oldPosition[0]
+        return None
+
+    @property
+    def oldColumn(self):
+        if self.oldPosition is not None:
+            return self.oldPosition[1]
+        return None
 
     def chargingRegion(self):
         """

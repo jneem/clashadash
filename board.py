@@ -136,6 +136,7 @@ class Board:
         moved = set()
         for u in self.units:
             if u in self._piecePositions and self._piecePositions[u] != u.position:
+                u.oldPosition = self._piecePositions[u]
                 moved.add(u)
 
         self._updatedPieces.update(moved)
@@ -621,6 +622,7 @@ class Board:
     def _appearPiece(self, piece, pos):
         """Place a new piece in the given position."""
         self.units.add(piece)                
+        piece.position = pos
         self._addToGrid(piece)        
         self._updatedPieces.add(piece)
 
@@ -640,15 +642,13 @@ class Board:
         #choose a random ordering of the columns
         columnList = list(np.random.permutation(self.width))
         for col in columnList:
-            #if piece can be added to column col
+            # Make a copy of the current board, then add a copy of the
+            # piece in the current column.  If no formations are created,
+            # then the column is ok.
             if self.canAddPiece(piece, col):
-                #make a fictious board with ghost pieces.
                 boardCopy = self.ghostBoard()
-                #make a ghost of the current piece
                 ghost = GhostPiece(piece)
-                #add ghost to boardCopy
                 boardCopy.addPiece(ghost, col)
-                #if no formations are created
                 if not boardCopy._createFormations():
                     return col
         return None
