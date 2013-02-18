@@ -31,6 +31,8 @@ class Piece(object):
                         whether pieces used to charge this piece can also be 
                         charged at that turn. NOTE: this requires the piece and
                         its charged form have the same size. 
+		    player:
+			a reference to the player that instantiated the piece
         """
 
         logging.debug('Creating a piece ' + str(description))
@@ -45,6 +47,9 @@ class Piece(object):
         self.slidePriority = int(description.get('slidePriority', 0))
         self._multiChargeable = bool(description.get('multiChargeable', False))
         self.image = description.get('image', '')
+        self.player = description.get('player')
+        
+        
 
     @property
     def row(self):
@@ -101,6 +106,7 @@ class Piece(object):
         appropriate color, this piece will be transformed somehow
         (probably into a wall).
         """
+        
         return (0, 0)
 
     def canTransform(self, other):

@@ -72,14 +72,15 @@ class Board:
             return None
 
     def getPieces(self, rows, cols):
-        """ Return a set of pieces on board in range [rows] x [cols]
-        remove None and redundancies """
-        units = set()
-        for i in rows:
-            for j in cols:
-                units.add(self[i,j])
-        #remove Nones
-        units.discard(None)
+        """ Return a LIST of pieces on board in range [rows] x [cols]
+        remove None and redundancies . Items scanned by column then by row, in the input order
+        """
+        units = list()
+        for j in cols:
+            for i in rows:
+		   if self[i,j] is not None:
+		       if self[i,j] not in units:
+			   units.append(self[i,j])
         return units
 
     def __setitem__(self, item, unit):
@@ -195,16 +196,10 @@ class Board:
         for j in range(ncol):  #for each column
             #get the units in column j
             unitCol = self.getPieces(range(nrow), [j])
-            if not unitCol:
-                continue #has no unit
-            unitCol = list(unitCol) #turn to a list instead of a set
-            #make sure the list has the same order as the current list
-            #i.e: sort by increasing row
-            unitCol = sorted(unitCol, key = lambda piece: piece.position[0])
+            if not unitCol: #column j has no unit
+                continue 
             #sort by decreasing priority
             unitCol = sorted(unitCol, key = lambda piece: piece.slidePriority, reverse = True)
-            if j == 1:
-                print "on column 1: " + str([x.name for x in unitCol])
             #copy this over to the board
             self[range(nrow), j] = None
             i = 0
@@ -223,9 +218,9 @@ class Board:
         trynum = 0
         while self._doAlignFatty(fatty):
             trynum = trynum + 1
-            print "fatty aligning attempt number " + str(trynum)
+            logging.debug( 'Done fatty alignment trial number %s' % trynum)
             if(trynum > 100):
-                raise MemoryError("attempt to realign fatty over 100 times")
+		logging.error('shiftByPriority attempting to realgin fatty over 100 times')
         return updated
 
     def _doAlignFatty(self, fatList):
@@ -235,6 +230,7 @@ class Board:
         updated = False
         for unit in fatList:
             if self[unit.position[0]+1,unit.position[1]+1] != unit: #if not aligned
+		logging.debug("Fatty named %s is not aligned." % unit.name)
                 #flag updated as True since we'll need another iteration
                 updated = True
                 #look up where the top corner is in the column
@@ -245,9 +241,7 @@ class Board:
                         topCornerLoc = i
                         break           
                 #if top corner is higher
-                print "fatty name " + unit.name
-                print "Top corner is " + str(topCornerLoc)
-                print "Expected corner is " + str(unit.position[0]+1)
+                logging.debug("His current top corner is in row %s. Correct row is %s" % (topCornerLoc, unit.position[0]+1))
                 if topCornerLoc > unit.position[0]+1:
                     #shift the leftside up as far as possible
                     delta = topCornerLoc - (unit.position[0]+1)
@@ -256,14 +250,13 @@ class Board:
                         if(self._canShiftUp(j-1,unit.position[0]+1+i, topCornerLoc)):
                             maxShift = i
                     #shift up by maxshift
-                    print "shifting the leftside of " + unit.name + " up"
-                    print "delta = " + str(delta)                    
-                    print "maxshift = " + str(maxShift)
+		    logging.debug("We need to shift his leftside up by %s. We can shift by %s" % (delta, maxShift))
                     if(maxShift > 0):
                         shifted = self._doShiftUp(j-1, unit.position[0], unit.position[0]+maxShift)
-                        print shifted
+                        logging.debug("Successfully shifted: %s" % shifted)
                     if maxShift == 0 or not shifted: 
                         #if cannot shift the left side up, then shift the rightside down
+                        logging.debug("Cannot shift the left side up. Shifting the right side down")
                         self._doShiftDown(j, topCornerLoc-1,unit.position[0], 2)
                 #if top corner is lower
                 if topCornerLoc < unit.position[0] +1:
@@ -274,10 +267,13 @@ class Board:
                         if(self._canShiftUp(j, topCornerLoc-1, topCornerLoc-1+maxShift)):
                             maxShift = i
                     #shift up by maxshift
+                    logging.debug("We need to shift his rightside up by %s. We can shift by %s" % (delta, maxShift))
                     if(maxShift > 0):                    
                         shifted = self._doShiftUp(j, topCornerLoc-1, topCornerLoc-1+maxShift)
+                        logging.debug("Successfully shifted: %s" % shifted)
                     if maxShift == 0 or not shifted:
                         #then shift the leftside down
+                        logging.debug("Cannot shift right side up. Shifting the left side down")
                         self._doShiftDown(j-1,unit.position[0], topCornerLoc+maxShift,2)
         return updated
 
@@ -290,7 +286,7 @@ class Board:
         for i in range(oldRow, self.grid.shape[0]):
             if self[i, col] is None:
                 empty += 1
-        if newRow - oldRow < empty: #if shift up by an amount < empty:
+        if newRow - oldRow <= empty: #if shift up by an amount < empty:
             return True
         else:
             return False
@@ -303,9 +299,6 @@ class Board:
         Return True if did some changes
         """
         shifted = False
-        print str(oldRow)
-        print str(newRow)
-        print str(col)
         nrow = self.grid.shape[0]
         delta = newRow - oldRow
         for i in reversed(range(oldRow, nrow)):
@@ -396,7 +389,8 @@ class Board:
         """
 
         if not self.canAddPiece(piece, col):
-            raise IndexError("Trying to add piece outside of board")
+	    logging.error("Trying to add piece outside of board")
+	    raise IndexError("Trying to add piece outside of board")
             
         row = self.rowToAdd(piece, col)
         piece.position = [row, col]
@@ -419,7 +413,7 @@ class Board:
             self.addPiece(piece, toColumn)
             self.normalize()
         else:
-            raise IndexError("Trying to add piece outside of board")
+	    logging.error("Trying to add piece outside of board")
 
     def _deleteFromGrid(self, piece):
         """At the piece's current position, set the grid to None.
@@ -442,7 +436,7 @@ class Board:
         self.grid[row:(row+tall), col:(col+fat)] = None
 
     def _addToGrid(self, piece):
-        """Update the grid according to the piece's current position.
+        """Add piece to the position supplied
 
         Raises ValueError if the position is already occupied."""
 
@@ -478,7 +472,7 @@ class Board:
         piece.position = None
 
     def _piecesInRegion(self, offset, regionSize):
-        """The set of pieces in the rectangle of the given size
+        """The list of pieces in the rectangle of the given size
         at the given offset."""
 
         row = offset[0]
@@ -508,7 +502,7 @@ class Board:
                 # returns true.
 
     def _chargers(self, piece):
-        """The set of pieces in the given piece's charging region."""
+        """The list of pieces in the given piece's charging region."""
 
         # Add piece.size[0] because the charge region starts from the square
         # behind the piece.
@@ -522,7 +516,7 @@ class Board:
         return self._regionFull(chargePosition, piece.chargingRegion())
 
     def _transformers(self, piece):
-        """The set of pieces in the given piece's transform region."""
+        """The list of pieces in the given piece's transform region."""
 
         # Add piece.size[1] because the charge region starts from the square
         # to the right of the piece.
@@ -543,28 +537,26 @@ class Board:
         unitList = sorted(list(self.units), key = lambda piece: piece.position[0])
         # a set of units to charge
         chargingPieces = set()
+        # a set of units used as chargers
+        chargerPieces = set()
+        # a set of pieces to be transformed (into walls)
+        transformingPieces = set()
         
         for unit in unitList:
             # Look at the pieces in the charging region.  If there are some,
             # and they are all good then the unit gets charged.
             chargers = self._chargers(unit)
             if self._chargeFull(unit) and all(unit.canCharge(x) for x in chargers):
-                # then this unit can be charged
                 chargingPieces.add(unit)
+                chargerPieces.update(set(chargers))
 
         #sort by columns now
         unitList = sorted(list(self.units), key = lambda piece: piece.position[1])
-        # a set of pieces to be transformed (into walls)
-        transformingPieces = set()
         for unit in unitList:
             transformers = self._transformers(unit)
             #if this unit can be transformed
             if self._transformFull(unit) and all(unit.canTransform(x) for x in transformers):
-                #if its friends has not been marked as transformed
-                if transformingPieces.isdisjoint(set(transformers)):
-                    #call handlers that a wall is made
-                    self.wallMade.callHandlers()
-                #mark the unit and _all_ the transforming objects as transforming
+                #mark the unit and _all_of its transformers as transforming
                 transformingPieces.add(unit)
                 transformingPieces.update(transformers)
 
@@ -572,48 +564,116 @@ class Board:
         #sort chargingPieces by column to avoid update order problems
         chargingPieces = sorted(list(chargingPieces), key = lambda piece: piece.position[1])
         chargedPieces = []
+        
+        # chargingChargers are pieces that are being charged and
+        # being used to charge another piece.
+        # transformingChargers are pieces that are transforming and
+        # being used to charge another piece.
+        chargingChargers = chargerPieces.intersection(chargingPieces)
+        transformingChargers = chargerPieces.intersection(transformingPieces)
+        
         for unit in chargingPieces:
-            # If this unit was used to charge something else, it may
-            # have been already removed from the board. In that case, we skip charging it.
-            if unit in self.units:
-                # Remove the pieces used to charge this piece.
-                # (unless it is also in the charging list AND the unit in front is multichargeable).
-                for x in self._chargers(unit):
-                    if not (unit._multiChargeable and x in chargingPieces):
-                        self._deletePiece(x)
-                
-                charged = unit.charge()
-                self._replacePiece(unit, charged)
-                chargedPieces.append(charged)
+            # Ignore the unit if it has been removed from the board.
+            # This could happen if it was used to charge something else.
+	    if unit in self.units:
+		charged = unit.charge()
+		chargedEndPosition = charged.position[0]+charged.size[0]
+		chargers = set(self._chargers(unit))
+		# Delete all chargers unless the unit that was charged is
+                # multichargeable.
+		# If also transforming, make a ghost piece at the end of
+                # the charged formation. The ghost acts as a placeholder
+                # for the wall that will eventually go there.
+		for x in chargers:
+		    if x in self.units:
+			if x in transformingChargers:
+			    ghost = GhostPiece(x)
+			    ghost.position[0] = chargedEndPosition
+			    transformingPieces.add(ghost)
+			    transformingChargers.add(ghost)
+			    self._deletePiece(x)
+			    break
+			if not unit._multiChargeable:			
+			    self._deletePiece(x)
+			else:
+			    if x not in chargingPieces:
+				self._deletePiece(x)
+
+		# If the unit is also transforming, create a ghost piece
+                # at the end of the charging formation
+		# and mark it as transforming
+		if unit in transformingPieces:
+		    ghost = GhostPiece(unit)
+		    ghost.position[0] = chargedEndPosition
+		    transformingPieces.add(ghost)
+		    transformingChargers.add(ghost)
+
+		# Replace the piece with its charged version 
+		self._replacePiece(unit, charged)
+		chargedPieces.append(charged)
 
         self.attackMade.callHandlers(set(chargedPieces))
-            
+        
         # Create walls.
         transformedPieces = []
         for unit in transformingPieces:
             position = unit.position
-            if unit in self.units:
-                self._deletePiece(unit)
+            transformed = unit.transform()        
 
-            transformed = unit.transform()
-            if transformed.size[1] + position[1] > self.width:
-                # If the transformed piece is too fat, ignore it.
-                continue
+            #Vanilla case: unit is not involved in charging. 
+            #Then, we will replace the unit with a wall at its current position
+            if unit not in transformingChargers:
+		self._replacePiece(unit, transformed)
+		transformedPieces.append(transformed)
 
-            # Try to place the transformed unit on the board, starting from the position
-            # of the original and then shifting backwards.
-            tall = transformed.size[0]
-            for row in range(position[0], self.height - tall + 1):
-                pos = (row, position[1])
-                if self._regionEmpty(self, pos, transformed.size):
-                    self._appearPiece(transformed, pos)
-                    transformedPieces.append(transformed)
-                    break
-
+	    # Case 2: Unit was used as a charger. By the time we get here,
+            # it was replaced by a ghost whose current position
+	    # is just behind the charged formation. In this case, we try to
+            # add a wall at the ghost's position while shifting everyone back
+            # (while also ensuring that fatties fit).
+            # If there is no room, we do not make the wall.
+            if unit in transformingChargers:
+                print(unit.name)
+		#check if we can shift items up
+		oldRow = unit.position[0]
+		newRow = unit.position[0]+1
+		col = unit.position[1]
+		if self._canInsertPiece(unit, unit.position):
+		    #do the insertion. Leave fatty disalignment alone, it should be resolved by board normalize()
+		    self._doShiftUp(col, oldRow, newRow)
+		    transformed = unit.transform()
+		    self._appearPiece(transformed, unit.position)
+		    transformedPieces.append(transformed)
+		    
         self.wallMade.callHandlers(set(transformedPieces))
                 
         return bool(chargingPieces or transformingPieces)
 
+    def _canInsertPiece(self, piece, position):
+	""" Return True if piece 
+	can be inserted to position (row, col) by shifting up pieces behind him
+	And that fatty alignment is not perturbed. Return False otherwise.
+	Used in the wall creation step of _createFormations.
+	"""
+	pHeight = piece.size[0]
+	pWidth = piece.size[1]
+	row = position[0]
+	#check that there is room to shift up.
+	for col in range(position[1], position[1]+pWidth):
+	    if not self._canShiftUp(col, row, row+pHeight): #if there is no room
+		return False
+	    else: #check if fatty is messed up
+		pieceList = set(self._piecesInRegion(offset = (row, col), regionSize = (self.height-row, 1)))
+		for x in pieceList:
+		    if x.size == (2,2): #if the unit is a fatty
+			#find his corner position
+			fattyRow, fattyCol = x.position
+			#if cannot shift the Fatty
+			if not self._canShiftUp(fattyCol, fattyRow, fattyRow+pHeight): 
+			    return False
+		return True
+		    
+    
     def _existPiece(self, piece):
         """ Return True if piece is existing on board at its stored position
         
@@ -626,13 +686,13 @@ class Board:
         """Place a new piece in the given position."""
         self.units.add(piece)                
         piece.position = pos
-        self._addToGrid(piece)        
+        self._addToGrid(piece)
         self._updatedPieces.add(piece)
 
     def _replacePiece(self, old, new):
         """Replaces an old piece with a new one."""
         pos = old.position
-        self._deletePiece(old)
+        self._deletePiece(old)        
         self._appearPiece(new, pos)
 
     def colToAdd(self, piece):
@@ -663,5 +723,16 @@ class Board:
             ghost = GhostPiece(u)
             boardCopy._appearPiece(ghost, u.position)
         return boardCopy
-
+    
+    def selfConsistent(self):
+	""" Return true if board and units agree on their positions"""
+	for u in self.units:
+	    row,col = u.position
+	    uheight, uwidth = u.size
+	    #check all squares that this unit should occupy
+	    for i in range(row, row + uheight):
+		for j in range(col, col + uwidth):
+		    if self[i,j] != u:
+			raise ValueError("piece %s position not aligned with board", u.name)
+	return True
         

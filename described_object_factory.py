@@ -24,7 +24,7 @@ class DescribedObjectFactory(object):
         for u in units:
             self.descriptions[u['name']] = u
     
-    def create(self, name, *args):
+    def create(self, name, *args, **kwargs):
         """Creates a new object.
         
         The characteristics of the object are determined by its description
@@ -32,9 +32,9 @@ class DescribedObjectFactory(object):
         passed to the objects constructor."""
         
         if name not in self.descriptions:
-            raise ValueError('Did not find a unit named "%s"' % name)
+            raise ValueError('Did not find an object named "%s"' % name)
 
-        return self.constructor(self.descriptions[name], *args)
+        return self.constructor(self.descriptions[name], *args, **kwargs)
 
 class UnitFactory(DescribedObjectFactory):
     def __init__(self, descriptionFile):

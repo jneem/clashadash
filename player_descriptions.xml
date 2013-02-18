@@ -2,13 +2,23 @@
     <player>
         <name>Camel</name>
         <wall>
-            <image>wall</image>
+            <image>wall.png</image>
             <toughness>7</toughness>
             <maxToughness>14</maxToughness>
         </wall>
         <units>
             <unit>Swordsman</unit>
         </units>
+        <race>Camel Coalition</race>
+	<maxLife>100</maxLife>
+	<maxMoves>3</maxMoves>
+	<maxMana>100</maxMana>
+	<maxUnitTotal>20</maxUnitTotal>
+	<manaFactor> 
+	    <link>1</link>
+	    <fuse>1</fuse>
+	    <move>1</move>
+	</manaFactor>
     </player>
 </playerDescriptions>
 

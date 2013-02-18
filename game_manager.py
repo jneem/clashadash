@@ -129,12 +129,11 @@ class GameManager(object):
         else:
             logging.debug('updating mana for event "%s" x%s' % (evt, num))
             factor = 0
-            if evt == "link":
-                factor = self.currentPlayer.manaFactor[0]
-            elif evt == "fuse":
-                factor = self.currentPlayer.manaFactor[1]
-            elif evt == "move":
-                factor = self.currentPlayer.manaFactor[2]
+            try:
+                factor = self.currentPlayer.manaFactor[evt]
+            except KeyError:
+                logging.error('player description missing manaFactor ' + evt)
+
             logging.debug('increment is %s' % factor * num)
             self.currentPlayer.mana += factor * num
             logging.debug('new mana is %s' % self.currentPlayer.mana)
