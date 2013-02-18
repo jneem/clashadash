@@ -46,11 +46,13 @@ class DummyPiece(Piece):
             return DummyPiece(2, 2, position=self.position)
 
     def transform(self):
-        return DummyPiece(self.size[0], self.size[1], transformable=False)
+        ret = DummyPiece(self.size[0], self.size[1], transformable=False)
+        ret.slidePriority = 1000
+        return ret
 
 class TestBoard(unittest.TestCase):
     
-    #@unittest.skip("")
+    @unittest.skip("")
     def testSlidePriority(self):
         b = Board(6, 8)
 
@@ -80,7 +82,7 @@ class TestBoard(unittest.TestCase):
         self.assertEqual(piece3.position, [0, 0])
         self.assertEqual(piece2.position, [2, 0])
 
-    #@unittest.skip("")
+    @unittest.skip("")
     def testCharge(self):
         b = Board(3, 3)
         piece1 = DummyPiece(1, 1)
@@ -93,7 +95,7 @@ class TestBoard(unittest.TestCase):
         b.normalize()
         self.assertEqual(b[0,0].size, (3, 1))
 
-    #@unittest.skip("")
+    @unittest.skip("")
     def testTransform(self):
         b = Board(6, 8)
         pieces = [DummyPiece(1, 1, transformable = True) for c in range(4)]
@@ -108,7 +110,7 @@ class TestBoard(unittest.TestCase):
         self.assertEqual(len(transformedPieces[0]), 4)
 
     #-- piece update test. 
-    #@unittest.skip("")
+    @unittest.skip("")
     def testPieceUpdate(self):
         b = Board(3, 3)
         piece1 = DummyPiece(1, 1)
@@ -135,7 +137,7 @@ class TestBoard(unittest.TestCase):
         
     
     #-- addPiece onto a full column
-    #@unittest.skip("")
+    @unittest.skip("")
     def testAddPiece(self):
 	b = Board(2, 3)
         b.addPiece(DummyPiece(1,1), 1)
@@ -143,8 +145,33 @@ class TestBoard(unittest.TestCase):
         
         with self.assertRaises(IndexError):
 	    b.addPiece(DummyPiece(1,1), 1)
+
+    # FIXME
+    def testLShape(self):
+        b = Board(4, 3)
+        b.addPiece(DummyPiece(1,1, transformable=True), 0)
+        b.addPiece(DummyPiece(1,1, transformable=True), 0)
+        b.addPiece(DummyPiece(1,1, transformable=True), 0)
+        b.addPiece(DummyPiece(1,1, transformable=True), 1)
+        b.addPiece(DummyPiece(1,1, transformable=True), 2)
+
+        attack = [None]
+        transform = [None]
+        def attackHandler(p): attack[0] = p
+        def transformHandler(p): transform[0] = p
+        b.attackMade.addHandler(attackHandler)
+        b.wallMade.addHandler(transformHandler)
+
+        b.normalize()
+
+        self.assertEqual(b[0,0].size, (1, 1))
+        self.assertFalse(b[0,0].transformable)
+        self.assertEqual(b[1,0].size, (3, 1))
+        self.assertEqual(len(attack[0]), 1)
+        self.assertEqual(len(transform[0]), 4)
+        self.assertEqual(attack.pop(), b[1,0])
     
-    #@unittest.skip("")
+    @unittest.skip("")
     def testSlideFatty(self):
         b = Board(4, 4)
         #add two small pieces in front of fatty
@@ -172,7 +199,7 @@ class TestBoard(unittest.TestCase):
         self.assertEqual(fatpiece.position,[0,0])
         self.assertTrue(b.selfConsistent)
     
-    #@unittest.skip("")
+    @unittest.skip("")
     def testSlidePairFatty(self):
         b = Board(4,3)
         #add a fatty to column 1 and another to column 0
