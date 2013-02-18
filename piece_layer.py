@@ -1,6 +1,7 @@
 import cocos
 from cocos.sprite import Sprite
 from cocos.layer.util_layers import ColorLayer
+from cocos.text import Label
 
 import logging
 
@@ -10,10 +11,53 @@ colors = {
     'white' : (255, 255, 255)
 }
 
+class TurnIndicator(cocos.layer.Layer):
+    """Displays the number of turns before a unit charges.
+
+    The anchor point of this layer is the center of the text.
+    """
+
+    def __init__(self, fontSize):
+        super(TurnIndicator, self).__init__()
+
+        # For better contrast, we do a larger label in white
+        # and a smaller label in black.
+        self._white = Label(font_name='Arial', font_size=fontSize*1.1,
+                            bold=True,
+                            color=(255, 255, 255, 255))
+        self._black = Label(font_name='Arial', font_size=fontSize,
+                            bold=True,
+                            color=(0, 0, 0, 255))
+
+        self._text = ''
+        self.add(self._white)
+        self.add(self._black, z=1)
+
+    @property
+    def text(self):
+        return self._text
+
+    @text.setter
+    def text(self, t):
+        self._text = t
+        self._white.element.text = t
+        self._black.element.text = t
+        self._reposition(self._white)
+        self._reposition(self._black)
+
+    def _reposition(self, label):
+        w = label.element.content_width
+        h = label.element.content_height
+
+        # It seems like this should be h/2, but for some reason that
+        # doesn't line up well...
+        label.position = (-w/2, -h/3)
+
 class PieceLayer(cocos.layer.Layer):
     def __init__(self, piece, width, height):
         super(PieceLayer, self).__init__()
         
+        self._piece = piece
         logging.debug('New piece layer %d x %d, image name %s' % (width, height, piece.imageName()))
 
         # Pieces with the 'color' property get a background.
@@ -36,8 +80,10 @@ class PieceLayer(cocos.layer.Layer):
         self._pieceSprite = pieceSprite
 
         self.add(pieceSprite)
-
         self._opacity = 255
+
+        self._turnIndicator = None
+        self._updateTurnIndicator()
 
     @property
     def opacity(self):
@@ -50,5 +96,31 @@ class PieceLayer(cocos.layer.Layer):
         self._background.opacity = op
         self._pieceSprite.opacity = op
         self._opacity = op
+
+    @property
+    def width(self):
+        return self._background.width
+
+    @property
+    def height(self):
+        return self._background.height
+
+    def _updateTurnIndicator(self):
+        """Displays text indicating how many turns are left before attacking."""
+
+        if hasattr(self._piece, 'turn'):
+            if self._turnIndicator is None:
+                self._turnIndicator = TurnIndicator(36)
+                self.add(self._turnIndicator)
+
+            self._turnIndicator.text = str(self._piece.turn)
+            self._turnIndicator.position = (self.width / 2, self.height / 2)
+        else:
+            if self._turnIndicator is not None:
+                self.remove(self._turnIndicator)
+                self._turnIndicator = None
+
+    def refresh(self):
+        self._updateTurnIndicator()
 
 

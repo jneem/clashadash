@@ -160,3 +160,14 @@ class BoardLayer(BoardPositionLayer):
     def _deletePiece(self, piece):
         pl = self.pieceLayers[piece]
         self.remove(pl)
+
+    def refreshPieces(self):
+        """Call refresh on all pieces in the board.
+
+        This is done once per turn to update the, for example, the
+        "number of turns before attacking" indicator.
+        """
+
+        for pl in self.pieceLayers.values:
+            pl.refresh()
+

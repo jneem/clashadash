@@ -17,9 +17,8 @@ class GameManager(object):
         switchTurn: triggered whenever a player ends their turn.
         
     Events handled:
-        wallMade and chargeMade from board. 
-        Triggered when wall and charging guys are formed.        
-        GameManager uses this information to make free moves.
+        wallMade, chargeMade, and fusionMade from board:
+            this information is used to make free moves and update mana.
     """
 
     def __init__(self, player1, board1, player2, board2):
@@ -90,9 +89,7 @@ class GameManager(object):
         """Ends the active player's turn.
 
         If the player has moves left, increases that player's mana.
-        
         Toggles the current player. 
-
         Triggers the switchTurn event.
         """
         moveLeft = self.currentPlayer.maxMoves - self.currentPlayer.usedMoves
@@ -105,6 +102,8 @@ class GameManager(object):
         self._otherPlayerBoard = tmp
 
         self.switchTurn.callHandlers()
+
+        #TODO: self.currentBoard.beginTurn()
 
     def _wallMade(self, walls):
         """Count the number of walls made in board """

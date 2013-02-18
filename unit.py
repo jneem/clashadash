@@ -48,3 +48,4 @@ class Unit(Piece):
     def imageName(self):
         return self.imageBase + '.png'
 
+
