@@ -70,6 +70,14 @@ class Piece(object):
             return self.oldPosition[1]
         return None
 
+    @property
+    def width(self):
+        return self.size[1]
+
+    @property
+    def height(self):
+        return self.size[0]
+
     def chargingRegion(self):
         """
         Returns a (height, width) pair. If the rectangle of the given

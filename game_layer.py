@@ -42,8 +42,8 @@ class GameLayer(cocos.layer.Layer):
         self.gameManager = gameManager
 
         # Initialize selectors.
-        self.topSelector = SelectorLayer(topBoard, pieceHeight, pieceWidth, True)
-        self.bottomSelector = SelectorLayer(bottomBoard, pieceHeight, pieceWidth, False)
+        self.topSelector = SelectorLayer(self.topBoard)
+        self.bottomSelector = SelectorLayer(self.bottomBoard)
 
         self.add(self.topBoard)
         self.add(self.bottomBoard)

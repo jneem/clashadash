@@ -22,6 +22,7 @@ class PieceLayer(cocos.layer.Layer):
             c = colors[piece.color]
             bg = ColorLayer(c[0], c[1], c[2], 192, width=width, height=height)
             self.add(bg)
+            self._background = bg
 
         pieceSprite = Sprite(piece.imageName())
         pieceSprite.image_anchor_x = 0
@@ -32,6 +33,22 @@ class PieceLayer(cocos.layer.Layer):
         scale = min(float(width) / rect.width,
                     float(height) / rect.height)
         pieceSprite.scale = scale
+        self._pieceSprite = pieceSprite
 
         self.add(pieceSprite)
+
+        self._opacity = 255
+
+    @property
+    def opacity(self):
+        return self._opacity
+
+    @opacity.setter
+    def opacity(self, op):
+        # This is a cheap version of transparency: just set the children
+        # to be transparent.
+        self._background.opacity = op
+        self._pieceSprite.opacity = op
+        self._opacity = op
+
 

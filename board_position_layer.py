@@ -1,5 +1,7 @@
 import cocos
 
+from piece_layer import PieceLayer
+
 class BoardPositionLayer(cocos.layer.Layer):
     """A class with methods for retrieving pixel positions of
     parts of the board."""
@@ -38,4 +40,9 @@ class BoardPositionLayer(cocos.layer.Layer):
         """The x coordinate of the left edge of the given column."""
         return col * self.pieceWidth
 
+    def createPieceLayer(self, piece):
+        """Create a PieceLayer from the given piece."""
 
+        return PieceLayer(piece, self.pieceWidth * piece.size[1],
+                                 self.pieceHeight * piece.size[0])
+ 

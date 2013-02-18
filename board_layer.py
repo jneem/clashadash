@@ -104,21 +104,28 @@ class BoardLayer(BoardPositionLayer):
             self._appearPiece(piece, position)
             return self.chargeTime
 
-    def _createPieceLayer(self, piece):
+    def hidePiece(self, piece):
+        """Hide the specified piece (without removing it from the board)."""
+
+        self.pieceLayers[piece].visible = False
+
+    def unhidePiece(self, piece):
+        """Show a piece that was previously hidded with hidePiece."""
+
+        self.pieceLayers[piece].visible = True
+
+    def _addPieceLayer(self, piece):
         """Create a PieceLayer from the given piece, add it to my display list
         and return it."""
 
-        pieceLayer = PieceLayer(piece,
-                                self.pieceWidth * piece.size[1],
-                                self.pieceHeight * piece.size[0])
+        pieceLayer = self.createPieceLayer(piece)
         self.pieceLayers[piece] = pieceLayer
         self.add(pieceLayer)
         return pieceLayer
 
 
-
     def _addPiece(self, piece):
-        pieceLayer = self._createPieceLayer(piece)
+        pieceLayer = self._addPieceLayer(piece)
 
         # For a better visual cue, place the piece at the top of its
         # column, then animate it into the correct position.
@@ -129,7 +136,7 @@ class BoardLayer(BoardPositionLayer):
     def _appearPiece(self, piece, position):
 
         logging.debug("Appearing piece %s at (%d,%d)" % (str(piece), position[0], position[1]))
-        pieceLayer = self._createPieceLayer(piece)
+        pieceLayer = self._addPieceLayer(piece)
         pieceLayer.y = self.yAt(position[0], piece.size[0])
         pieceLayer.x = self.xAt(position[1])
 

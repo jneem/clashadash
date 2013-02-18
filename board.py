@@ -351,10 +351,13 @@ class Board:
             if unit.position[1] == col:
                 unit.position[0] = i
 
-    def _rowToAdd(self, piece, col):
-        """Returns the row at which the piece will be added.
-        If the returned value is >= self.height, the row position is 
-        essentially invalid.
+    def rowToAdd(self, piece, col):
+        """Returns the row at which the piece will be added, if
+        it is added to the given column.
+
+        If the returned value plus the height of the piece is larger
+        than self.height, then the piece cannot be added in the given
+        column.
         """
 
         # If the piece belongs to the board, remove it from the
@@ -378,7 +381,7 @@ class Board:
 
         tall = piece.size[0]
         fat = piece.size[1]
-        row = self._rowToAdd(piece, col)
+        row = self.rowToAdd(piece, col)
 
         return row + tall <= self.grid.shape[0] and \
             col + fat <= self.grid.shape[1]
@@ -395,7 +398,7 @@ class Board:
         if not self.canAddPiece(piece, col):
             raise IndexError("Trying to add piece outside of board")
             
-        row = self._rowToAdd(piece, col)
+        row = self.rowToAdd(piece, col)
         piece.position = [row, col]
         self.units.add(piece)
         self._addToGrid(piece)        
