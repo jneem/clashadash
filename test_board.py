@@ -29,7 +29,10 @@ class DummyPiece(Piece):
             return (1, 2)
         else:
             return (0, 0)
-
+    
+    def canTransform(self, other):
+	return (self.size == (1,1) and other.size == (1,1))
+    
     def canCharge(self, other):
         return self.chargeable
 
@@ -92,17 +95,18 @@ class TestBoard(unittest.TestCase):
     #@unittest.skip("")
     def testTransform(self):
         b = Board(6, 8)
-        pieces = [DummyPiece(1, 1) for c in range(4)]
+        pieces = [DummyPiece(1, 1, transformable = True) for c in range(4)]
         for c in range(4):
             b.addPiece(pieces[c], c)
 
         transformedPieces = []
         def transformHandler(p): transformedPieces.append(p)
+        b.wallMade.addHandler(transformHandler)
         b.normalize()
 
-        self.assertEqual(len(transformedPieces), 4)
+        self.assertEqual(len(transformedPieces[0]), 4)
 
-    #-- piece update test. Includes movePiece and deletePiece
+    #-- piece update test. 
     #@unittest.skip("")
     def testPieceUpdate(self):
         b = Board(3, 3)
@@ -128,6 +132,9 @@ class TestBoard(unittest.TestCase):
         b.deletePiece(piece1)
         self.assertEqual(updates[0], set([piece1]))
         
+    
+    #-- addPiece onto a full column
+    #@unittest.skip("")
     def testAddPiece(self):
 	b = Board(2, 3)
         b.addPiece(DummyPiece(1,1), 1)

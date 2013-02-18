@@ -2,6 +2,7 @@
 
 from piece import Piece
 from charging_unit import ChargingUnit
+from wall import Wall
 
 class Unit(Piece):
     def __init__(self, description, color):
@@ -13,6 +14,7 @@ class Unit(Piece):
         self.color = color
         self.chargeDescription = dict(description['charge'])
         self.imageBase = description['imageBase']
+        self.player = description['player']
 
     def chargingRegion(self):
         # The charging region of a unit is 2 squares deep, and its width
@@ -23,7 +25,6 @@ class Unit(Piece):
         return self.color == other.color and other.size == (1, 1)
 
     def canTransform(self, other):
-        return False # TODO: remove this once the Wall class is finished.
         return (self.color == other.color and
                 self.size == (1, 1) and
                 other.size == (1, 1))
@@ -31,7 +32,7 @@ class Unit(Piece):
     def transformingRegion(self):
         if self.size == (1, 1):
             return (1, 2)
-        else:
+	    else:
             return (0, 0)
 
     def damage(self, attack_strength):
@@ -39,7 +40,7 @@ class Unit(Piece):
         return (max(0, attack_strength - self.toughness), True)
 
     def transform(self):
-        pass # TODO
+        return Wall(self.player.wallDescription, self.position)
 
     def charge(self):
         return ChargingUnit(self.chargeDescription, self.size,

@@ -10,7 +10,10 @@ class Wall(Piece):
         desc['width'] = 1
         super(Wall, self).__init__(desc)
 
+	self.image = desc['image']
+	self.toughness = int(desc['toughness'])
         self.maxToughness = int(desc['maxToughness'])
+        
         self.slidePriority = 1000
         self.moveable = True
 
