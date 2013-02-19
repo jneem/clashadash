@@ -29,7 +29,7 @@ class DescribedObjectFactory(object):
         
         The characteristics of the object are determined by its description
         in the configuration file. Any additional arguments will be
-        passed to the objects constructor."""
+        passed to the object's constructor."""
         
         if name not in self.descriptions:
             raise ValueError('Did not find an object named "%s"' % name)

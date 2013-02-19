@@ -8,6 +8,7 @@ class Wall(Piece):
         desc['name'] = 'Wall'
         desc['height'] = 1
         desc['width'] = 1
+        # FIXME: should there be a player?
         super(Wall, self).__init__(desc)
 
 	self.image = desc['image']

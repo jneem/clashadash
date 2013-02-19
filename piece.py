@@ -31,8 +31,6 @@ class Piece(object):
                         whether pieces used to charge this piece can also be 
                         charged at that turn. NOTE: this requires the piece and
                         its charged form have the same size. 
-		    player:
-			a reference to the player that instantiated the piece
         """
 
         logging.debug('Creating a piece ' + str(description))
@@ -41,14 +39,13 @@ class Piece(object):
         self.name = description.get('name', '')
         self.position = None
         self.oldPosition = None
-        self.size = (int(description['height']), int(description['width']))
+        self.size = (int(description.get('height', 1)),
+                     int(description.get('width', 1)))
         self.moveable = bool(description.get('moveable', False))
         self.toughness = int(description.get('toughness', 0))
         self.slidePriority = int(description.get('slidePriority', 0))
         self._multiChargeable = bool(description.get('multiChargeable', False))
         self.image = description.get('image', '')
-        self.player = description.get('player')
-        
         
 
     @property

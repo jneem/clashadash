@@ -1,0 +1,29 @@
+[
+{
+    "comment": "A piece with nothing in front of it will slide down into the empty squares"
+    ,"boardHeight": 8
+    ,"boardWidth": 8
+    ,"startConfig": [
+        { "position": [4, 0] }
+        ,{ "position": [5, 0] }
+    ]
+    ,"endConfig": [
+        { "position": [0, 0] }
+        ,{ "position": [1, 0] }
+    ]
+}
+
+,{
+    "comment": "A piece with higher slide priority will push the other piece aside"
+    ,"boardHeight": 8
+    ,"boardWidth": 8
+    ,"startConfig": [
+        { "position": [4, 0], "color": "red" }
+        ,{ "position": [5, 0], "color": "blue", "slidePriority": 100 }
+    ]
+    ,"endConfig": [
+        { "position": [1, 0], "color": "red" }
+        ,{ "position": [0, 0], "color": "blue"}
+    ]
+}
+]
