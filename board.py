@@ -748,6 +748,6 @@ class Board:
             for i in range(row, row + uheight):
                 for j in range(col, col + uwidth):
                     if self[i,j] != u:
-                        raise ValueError("piece %s position not aligned with board", u.name)
+                        return False
         return True
         

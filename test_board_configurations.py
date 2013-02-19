@@ -26,8 +26,7 @@ class TestBoardConfigurations(unittest.TestCase):
                           (config['comment'], ', '.join(errors)))
 
     def buildBoard(self, desc):
-        width = desc['boardWidth']
-        height = desc['boardHeight']
+        height, width = desc['dimensions']
         b = Board(height, width)
         for pieceDesc in desc['startConfig']:
             self.addJSONPiece(b, pieceDesc)
@@ -43,6 +42,7 @@ class TestBoardConfigurations(unittest.TestCase):
         # For every description, check that there is a matching
         # piece in the board.
         errors = []
+        checkedPieces = []
         for pieceDesc in desc:
             position = pieceDesc['position']
             piece = board[position[0],position[1]]
@@ -51,12 +51,19 @@ class TestBoardConfigurations(unittest.TestCase):
                 errors.append('board should have a piece at ' + str(position))
                 continue
 
+            checkedPieces.append(piece)
             check = self.checkPieceMatches(piece, pieceDesc)
             if len(check) > 0:
                 errors.append(('piece at %s ' % str(position)) + check)
 
-        # TODO: go through the board and check that there is a
-        # matching description for every piece.
+        # Make sure that every piece on the board was mentioned in
+        # the description.
+        uncheckedPieces = board.units.difference(checkedPieces)
+        if len(uncheckedPieces) > 0:
+            errors.append('there were %d extra pieces on the board' % len(uncheckedPieces))
+
+        if not board.selfConsistent():
+            errors.append('the board entered an inconsistent state')
 
         return errors
 
@@ -72,6 +79,12 @@ class TestBoardConfigurations(unittest.TestCase):
             if not hasattr(piece, key):
                 return "doesn't have property '%s'" % key
             actualVal = getattr(piece, key)
+
+            # Convert tuples to lists, since things read in from JSON will
+            # always be lists.
+            if isinstance(actualVal, tuple):
+                actualVal = list(actualVal)
+
             if actualVal != val:
                 return "'%s' is '%s' but should be '%s'" % (key, actualVal, val)
         return ''
