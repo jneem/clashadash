@@ -41,6 +41,16 @@ class GameManager(object):
         board2.attackMade.addHandler(self._attackMade)
         board1.fusionMade.addHandler(self._fusionMade)
         board2.fusionMade.addHandler(self._fusionMade)
+        board1.playerIsHit.addHandler(self._playerIsHit)
+        board2.playerIsHit.addHandler(self._playerIsHit)
+	player1.justDied.addHandler(self._playerJustDied)
+	player2.justDied.addHandler(self._playerJustDied)
+	
+        #the two boards handle each other damage
+        board1.attackNow.addHandler(board2.damageCalculate)
+        board2.attackNow.addHandler(board1.damageCalculate)
+        
+        
 
     @property
     def currentPlayer(self):
@@ -49,7 +59,15 @@ class GameManager(object):
     @property
     def currentBoard(self):
         return self._currentPlayerBoard[1]
-        
+    
+    @property
+    def otherPlayer(self):
+	return self._otherPlayerBoard[0]
+    
+    @property
+    def otherBoard(self):
+	return self._otherPlayerBoard[1]
+    
     def movePiece(self, piece, col):
         """Puts piece to column col.
 
@@ -102,8 +120,8 @@ class GameManager(object):
         self._otherPlayerBoard = tmp
 
         self.switchTurn.callHandlers()
-
-        #TODO: self.currentBoard.beginTurn()
+        #begin the new turn
+        self.currentBoard.beginTurn()    
 
     def _wallMade(self, walls):
         """Count the number of walls made in board """
@@ -188,7 +206,19 @@ class GameManager(object):
         
         if self.currentPlayer.usedMoves == self.currentPlayer.maxMoves:
             self.endTurn()
+    
+    def _playerIsHit(self, enemy):
+	""" Player is hit by unit enemy. Note that currentPlayer is doing the attacking. 
+	"""
+	self.otherPlayer.life = self.otherPlayer.life - enemy.toughness    
 
+    #TODO
+    def _playerJustDied(self): 
+	""" Player just died event handler."""
+	logging.debug("Player %s just died" % self.otherPlayer.name)
+	pass
+	
+    
     def callPieces(self):
         """Current player wants to call some pieces.
 

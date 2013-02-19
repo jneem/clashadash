@@ -67,12 +67,15 @@ class Player(object):
 
         # Event emitters
         self.doneTurn = EventHook()
+        self.justDied = EventHook()
 
         # Callbacks take a single argument that is the new mana value.
         self.manaChanged = EventHook()
 
         # Callbacks take a single argument that is the new life value.
         self.lifeChanged = EventHook()
+        
+        
 
     @property
     def mana(self):
@@ -90,9 +93,14 @@ class Player(object):
 
     @life.setter
     def life(self, l):
+	delta = l - self._life
         self._life = l
         self.lifeChanged.callHandlers(l)
-
+        if delta < 0: #loss of life contributes towards increase in mana
+	    self.mana = self.mana - delta
+	if self._life <= 0: #if dead
+	    self.justDied.callHandlers()
+	    
     def setGameManager(self, gameManager):
         self.gameManager = gameManager
 
@@ -129,5 +137,3 @@ class Player(object):
         else:
             unit = self.getBaseUnit()
         return unit
-
-

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from piece import Piece
+import logging
 
 class ChargingUnit(Piece):
     def __init__(self, description, base_size, position, color):
@@ -23,7 +24,7 @@ class ChargingUnit(Piece):
         self.turn = self.maxTurns
         self.imageBase = description['imageBase']
         
-        self.toughness = self.chargeAtTurn(self.turn)
+        self.toughness = self.initialPower
         
     def canMerge(self, other):
         return (hasattr(other, 'base_size') and
@@ -37,9 +38,8 @@ class ChargingUnit(Piece):
         Assuming it has not received damage or bonuses, this is the
         toughness of the unit when it will attack in n turns.
         """
-        return (self.initialPower +
-                int((self.maxPower - self.initialPower) *
-                    float(self.maxTurns - self.turn) / float(self.maxTurns)))
+        val = self.initialPower + int((self.maxPower - self.initialPower) * float(self.maxTurns - n) / float(self.maxTurns))
+        return val
                     
     def chargeAtTurn(self, n):
         """
@@ -49,7 +49,8 @@ class ChargingUnit(Piece):
         received so far.
         """
         damage = self.defaultChargeAtTurn(self.turn) - self.toughness
-        return self.defaultChargeAtTurn(n) - damage
+        val = self.defaultChargeAtTurn(n) - damage
+        return val
         
     def merge(self, other):
         self.maxPower += other.maxPower
@@ -59,7 +60,7 @@ class ChargingUnit(Piece):
         self.toughness += other.chargeAtTurn(self.turn)
     
     def update(self):
-        self.toughness = self.chargeAtTurn(self.turn - 1)
+        self.toughness = self.chargeAtTurn(self.turn - 1) 
         self.turn -= 1
 
     def readyToAttack(self):

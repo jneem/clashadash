@@ -53,6 +53,19 @@ class Board:
         # Event handler that will be triggered when fusion is made
         # TODO. NOT IMPLEMENTED
         self.fusionMade = EventHook()
+        
+        # Event handler that will be triggered when units attack 
+        self.attackNow = EventHook()
+        
+        # Event handler that will be triggered when an enemy unit hits the board owner
+        self.playerIsHit = EventHook()
+        
+        # Event handler that will be triggered when a unit is hit by an enemy unit
+        self.unitIsHit = EventHook()
+        
+        # Event handler that will be triggered when the turn begins, 
+        #after all currentAttacks have been updated
+        self.turnBegun = EventHook()
 
     def __getitem__(self, item):
         '''Return the corresponding sub-table of grid.
@@ -618,6 +631,8 @@ class Board:
 	#only call handler if some charged pieces were made
 	if len(chargedPieces) > 0:
 	    self.attackMade.callHandlers(set(chargedPieces))
+	#update the set of currentAttacks. 
+	    self.currentAttacks.update(set(chargedPieces))
         
         # Create walls.
         transformedPieces = []
@@ -739,4 +754,52 @@ class Board:
                     if self[i,j] != u:
                         raise ValueError("piece %s position not aligned with board", u.name)
         return True
-        
+    
+    def beginTurn(self):
+	""" This function is called by gameManager at the start of this board's turn.
+	    All charging units are updated.
+	    For charging units ready to go, board emit an event, passing the name of the unit.
+	    This will get parsed by the opposing board.
+	"""
+	attackGuys = set()
+	for x in self.currentAttacks:
+	    x.update()
+	    if x.readyToAttack():
+		attackGuys.add(x)
+	#remove the attackGuys from the list of currentAttacks
+	self.currentAttacks.difference_update(attackGuys)
+	
+	self.turnBegun.callHandlers()
+	
+	if len(attackGuys) > 0: #send off the attackGuys to eventHandlers
+	    self.attackNow.callHandlers(set(attackGuys))
+	#now, we remove the attackGuys from the board
+	for x in attackGuys:
+	    self._deletePiece(x)
+	self.normalize()
+
+    def damageCalculate(self, attackEnemies):
+	""" Handle damage calculations done on this board by attackEnemies """
+	for enemy in attackEnemies:
+	    col = enemy.position[1]
+	    #get all units in the column
+	    defendUnits = self._piecesInRegion(offset = [0,col], regionSize = [self.height, 1])
+	    enemyDead = False
+	    if len(defendUnits) == 0: #if there is no defense, then player take the blow.
+		self.playerIsHit.callHandlers(enemy)
+	    else:
+		#sort the defenders by increasing height
+		defendUnits = sorted(list(defendUnits), key = lambda piece: piece.position[0])
+		for defender in defendUnits:
+		    tmp = defender.toughness
+		    defender.toughness, defenderDead = defender.damage(enemy.toughness)
+		    enemy.toughness, enemyDead = enemy.damage(tmp)
+		    self.unitIsHit.callHandlers(defender, enemy)
+		    if defenderDead:
+			self._deletePiece(defender)
+		    if enemyDead:
+			break #no more attacking
+		if not enemyDead: #enemy is not dead after going through all the defenders
+		    self.playerIsHit.callHandlers(enemy)
+	self._reportPieceUpdates()
+	

@@ -13,7 +13,7 @@
 	<maxLife>100</maxLife>
 	<maxMoves>3</maxMoves>
 	<maxMana>100</maxMana>
-	<maxUnitTotal>20</maxUnitTotal>
+	<maxUnitTotal>32</maxUnitTotal>
 	<manaFactor> 
 	    <link>1</link>
 	    <fuse>1</fuse>

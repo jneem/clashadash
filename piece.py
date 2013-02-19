@@ -138,14 +138,10 @@ class Piece(object):
         Damages this unit by a given amount.
 
         Returns a pair (remaining_strength, dead) where remaining_strength
-        says how much strength the attacker still has left, while dead is
+        says how much strength the current piece still has left, while dead is
         true if this piece died and should be removed.
         """
-        if self.toughness > 0:
-            return (attackStrength - self.toughness,
-                    attackStrength >= self.toughness)
-        else:
-            return (attackStrength, False)
+	return (self.toughness - attackStrength, self.toughness <= attackStrength)
 
     def charge(self):
         """

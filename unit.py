@@ -36,9 +36,12 @@ class Unit(Piece):
         else:
             return (0, 0)
 
-    def damage(self, attack_strength):
-        # A unit always dies, even if it only took one damage.
-        return (max(0, attack_strength - self.toughness), True)
+    def damage(self, attackStrength):
+	"""
+        Damages this unit by a given amount.
+	Uncharged unit always die regardless of the damage amount.
+        """
+	return (self.toughness - attackStrength, True)
 
     def transform(self):
         return Wall(self.player.wallDescription, self.position)

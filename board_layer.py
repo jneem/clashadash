@@ -39,13 +39,14 @@ class BoardLayer(BoardPositionLayer):
         # pairs to be updated at that stage.
         self.animationQueue = []
         self.isAnimating = False
-
+        
         # Add all the pieces that are currently on the board.
         for p in board.units:
             self.addPiece(p)
 
         # Set up handlers to catch future changes to the board.
         board.pieceUpdated.addHandler(self._updateNotification)
+        board.turnBegun.addHandler(self.refreshPieces)
 
     def _updateNotification(self, pieces):
         """Called whenever the board is updated."""
@@ -168,6 +169,6 @@ class BoardLayer(BoardPositionLayer):
         "number of turns before attacking" indicator.
         """
 
-        for pl in self.pieceLayers.values:
+        for pl in self.pieceLayers.values():
             pl.refresh()
 
