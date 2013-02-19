@@ -18,6 +18,7 @@ class DummyPiece(Piece):
         self.chargeable = chargeable
         self.transformable = transformable
         self.position = position
+        self._multichargeable = False
 
     def chargingRegion(self):
         if self.chargeable:
@@ -39,15 +40,20 @@ class DummyPiece(Piece):
 
     def charge(self):
         if self.size == (1, 1):
-            return DummyPiece(3, 1, position=self.position)
+	    dumb = DummyPiece(3, 1, position=self.position)
+            dumb.slidePriority = 1
         if self.size == (2, 1):
-            return DummyPiece(2, 1, position=self.position)
+            dumb = DummyPiece(2, 1, position=self.position)
+            dumb.slidePriorit = 2
         if self.size == (2, 2):
-            return DummyPiece(2, 2, position=self.position)
+            dumb = DummyPiece(2, 2, position=self.position)
+            dumb.slidePriority = 3
+	return dumb
 
     def transform(self):
-        ret = DummyPiece(self.size[0], self.size[1], transformable=False)
+        ret = DummyPiece(self.size[0], self.size[1], position = self.position, transformable=False)
         ret.slidePriority = 1000
+        ret.chargeable = False
         return ret
 
 class TestBoard(unittest.TestCase):
@@ -94,6 +100,25 @@ class TestBoard(unittest.TestCase):
         b.addPiece(piece3, 0)
         b.normalize()
         self.assertEqual(b[0,0].size, (3, 1))
+
+    @unittest.skip("")
+    def testChargeFour(self):
+	""" We have 4 base units in a column. This tests charging when multichargeable is False."""
+        b = Board(4, 4)
+        piece1 = DummyPiece(1, 1)
+        piece2 = DummyPiece(1, 1)
+        piece3 = DummyPiece(1, 1)
+        piece4 = DummyPiece(1, 1)
+
+        b.addPiece(piece1, 0)
+        b.addPiece(piece2, 0)
+        b.addPiece(piece3, 0)
+        b.addPiece(piece4, 0)
+        b.normalize()
+        self.assertEqual(b[0,0].size, (3, 1))
+        self.assertEqual(b[1,0].size, (3, 1))
+        self.assertEqual(b[2,0].size, (3, 1))
+        self.assertEqual(b[3,0], piece4)
 
     @unittest.skip("")
     def testTransform(self):
@@ -146,7 +171,7 @@ class TestBoard(unittest.TestCase):
         with self.assertRaises(IndexError):
 	    b.addPiece(DummyPiece(1,1), 1)
 
-    # FIXME
+    @unittest.skip("")
     def testLShape(self):
         b = Board(4, 3)
         b.addPiece(DummyPiece(1,1, transformable=True), 0)
@@ -168,8 +193,102 @@ class TestBoard(unittest.TestCase):
         self.assertFalse(b[0,0].transformable)
         self.assertEqual(b[1,0].size, (3, 1))
         self.assertEqual(len(attack[0]), 1)
-        self.assertEqual(len(transform[0]), 4)
-        self.assertEqual(attack.pop(), b[1,0])
+        self.assertEqual(len(transform[0]), 3)
+        self.assertEqual(attack[0].pop(), b[1,0])
+    
+    @unittest.skip("")
+    def testTShape(self):
+	""" Test T shape configuration by using fatties to prop up the T. 
+	In this test, there is enough room for the wall to form at the end.
+	It is sufficient to test one side of the T only (so our shape is more up-side-down L than T)
+	"""
+	b = Board(4,3)
+	b.addPiece(DummyPiece(2,2,chargeable = False, transformable = False), 0)
+	b.addPiece(DummyPiece(1,1,transformable = True), 0)
+	b.addPiece(DummyPiece(1,1,transformable = True), 1)
+	b.addPiece(DummyPiece(1,1,transformable = True), 2)
+	b.addPiece(DummyPiece(1,1,transformable = True), 2)
+	b.addPiece(DummyPiece(1,1,transformable = True), 2)
+	
+	attack = [None]
+	transform = [None]
+	def attackHandler(p): attack[0] = p
+        def transformHandler(p): transform[0] = p
+        b.attackMade.addHandler(attackHandler)
+        b.wallMade.addHandler(transformHandler)
+	
+        b.normalize()
+        
+        self.assertEqual(b[0,0].size, (1,1))
+        self.assertEqual(b[0,1].size, (1,1))
+        self.assertEqual(b[1,0].size, (2,2))
+        self.assertEqual(b[0,2].size, (1,1))
+        self.assertEqual(b[1,2].size, (3,1))
+        self.assertEqual(len(transform[0]), 3)
+        self.assertEqual(attack[0].pop(), b[1,2])
+
+    @unittest.skip("")
+    def testTShapeTight(self):
+	""" In this T shape test, there is not enough room for the wall to form at the end
+	of the charging formation. Thus, one less wall should be formed.
+	"""
+	b = Board(3,3)
+	b.addPiece(DummyPiece(2,2,chargeable = False, transformable = False), 0)
+	b.addPiece(DummyPiece(1,1,transformable = True), 0)
+	b.addPiece(DummyPiece(1,1,transformable = True), 1)
+	b.addPiece(DummyPiece(1,1,transformable = True), 2)
+	b.addPiece(DummyPiece(1,1,transformable = True), 2)
+	b.addPiece(DummyPiece(1,1,transformable = True), 2)
+	
+	attack = [None]
+	transform = [None]
+	def attackHandler(p): attack[0] = p
+        def transformHandler(p): transform[0] = p
+        b.attackMade.addHandler(attackHandler)
+        b.wallMade.addHandler(transformHandler)
+	
+        b.normalize()
+        
+        self.assertEqual(b[0,0].size, (1,1))
+        self.assertEqual(b[0,1].size, (1,1))
+        self.assertEqual(b[1,0].size, (2,2))
+        self.assertEqual(b[0,2].size, (3,1))
+        self.assertEqual(len(transform[0]), 2)
+        self.assertEqual(attack[0].pop(), b[0,2])
+
+    #@unittest.skip("")
+    def testTShapeFour(self):
+	""" In this T shape test, there are 4-based unit in one column and one horizontal wall. 
+	"""
+	b = Board(5,3)
+	b.addPiece(DummyPiece(2,2,chargeable = False, transformable = False), 0)
+	b.addPiece(DummyPiece(1,1,transformable = True), 0)
+	b.addPiece(DummyPiece(1,1,transformable = True), 1)
+	b.addPiece(DummyPiece(1,1,transformable = True), 2)
+	b.addPiece(DummyPiece(1,1,transformable = True), 2)
+	b.addPiece(DummyPiece(1,1,transformable = True), 2)
+	b.addPiece(DummyPiece(1,1,transformable = True), 2)
+	
+	attack = [None]
+	transform = [None]
+	def attackHandler(p): attack[0] = p
+        def transformHandler(p): transform[0] = p
+        b.attackMade.addHandler(attackHandler)
+        b.wallMade.addHandler(transformHandler)
+	
+        b.normalize()
+        
+	self.assertEqual(b[0,0].size, (1,1))
+        self.assertEqual(b[0,1].size, (1,1))
+        self.assertEqual(b[1,0].size, (2,2))
+        self.assertEqual(b[0,2].size, (1,1))
+        self.assertEqual(b[1,2].size, (3,1))
+        self.assertEqual(len(transform[0]), 3)
+        self.assertEqual(b[4,2].size, (1,1))
+        self.assertEqual(len(attack[0]), 1)
+        self.assertEqual(attack[0].pop(), b[1,2])
+
+    #TODO: T shape with fatties disalignment.
     
     @unittest.skip("")
     def testSlideFatty(self):

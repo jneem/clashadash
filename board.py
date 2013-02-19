@@ -550,8 +550,9 @@ class Board:
                 chargingPieces.add(unit)
                 chargerPieces.update(set(chargers))
 
-        #sort by columns now
-        unitList = sorted(list(self.units), key = lambda piece: piece.position[1])
+        #sort by increasing column (first key), and increasing row (second key)
+        unitList = sorted(list(self.units), key = lambda piece: piece.position[0])
+        unitList = sorted(unitList, key = lambda piece: piece.position[1])
         for unit in unitList:
             transformers = self._transformers(unit)
             #if this unit can be transformed
@@ -561,8 +562,10 @@ class Board:
                 transformingPieces.update(transformers)
 
         # Create charging formations. Resolve multiChargeable conflicts here.
-        #sort chargingPieces by column to avoid update order problems
-        chargingPieces = sorted(list(chargingPieces), key = lambda piece: piece.position[1])
+        # To avoid update order problems, we sort chargingPieces by increasing column (first key)
+        # and increasing row (second key)
+        chargingPieces = sorted(list(chargingPieces), key = lambda piece: piece.position[0])
+        chargingPieces = sorted(chargingPieces, key = lambda piece: piece.position[1])
         chargedPieces = []
         
         # chargingChargers are pieces that are being charged and
@@ -591,9 +594,9 @@ class Board:
                             ghost.position[0] = chargedEndPosition
                             transformingPieces.add(ghost)
                             transformingChargers.add(ghost)
+                            transformingPieces.remove(x)
                             self._deletePiece(x)
-                            break
-                        if not unit._multiChargeable:                        
+                        elif not unit._multiChargeable:                        
                             self._deletePiece(x)
                         else:
                             if x not in chargingPieces:
@@ -612,8 +615,9 @@ class Board:
                 # Replace the piece with its charged version 
                 self._replacePiece(unit, charged)
                 chargedPieces.append(charged)
-
-        self.attackMade.callHandlers(set(chargedPieces))
+	#only call handler if some charged pieces were made
+	if len(chargedPieces) > 0:
+	    self.attackMade.callHandlers(set(chargedPieces))
         
         # Create walls.
         transformedPieces = []
@@ -634,7 +638,6 @@ class Board:
             # (while also ensuring that fatties fit).
             # If there is no room, we do not make the wall.
             if unit in transformingChargers:
-                print(unit.name)
                 #check if we can shift items up
                 oldRow = unit.position[0]
                 newRow = unit.position[0]+1
@@ -642,13 +645,13 @@ class Board:
                 if self._canInsertPiece(unit, unit.position):
                     #do the insertion. Leave fatty disalignment alone, it should be resolved by board normalize()
                     self._doShiftUp(col, oldRow, newRow)
-                    transformed = unit.transform()
                     self._appearPiece(transformed, unit.position)
                     transformedPieces.append(transformed)
-                    
-        self.wallMade.callHandlers(set(transformedPieces))
+	#only call handler if some wall was made. 
+	if len(transformedPieces) > 0:
+	    self.wallMade.callHandlers(set(transformedPieces))
                 
-        return bool(chargingPieces or transformingPieces)
+        return bool(chargedPieces or transformedPieces)
 
     def _canInsertPiece(self, piece, position):
         """ Return True if piece 
