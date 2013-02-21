@@ -132,7 +132,7 @@ class TestBoard(unittest.TestCase):
         b.wallMade.addHandler(transformHandler)
         b.normalize()
 
-        self.assertEqual(len(transformedPieces[0]), 4)
+        self.assertEqual(len(transformedPieces[0][0]), 4)
 
     #-- piece update test. 
     @unittest.skip("")
@@ -193,7 +193,7 @@ class TestBoard(unittest.TestCase):
         self.assertFalse(b[0,0].transformable)
         self.assertEqual(b[1,0].size, (3, 1))
         self.assertEqual(len(attack[0]), 1)
-        self.assertEqual(len(transform[0]), 3)
+        self.assertEqual(len(transform[0][0]), 3)
         self.assertEqual(attack[0].pop(), b[1,0])
     
     @unittest.skip("")
@@ -224,7 +224,7 @@ class TestBoard(unittest.TestCase):
         self.assertEqual(b[1,0].size, (2,2))
         self.assertEqual(b[0,2].size, (1,1))
         self.assertEqual(b[1,2].size, (3,1))
-        self.assertEqual(len(transform[0]), 3)
+        self.assertEqual(len(transform[0][0]), 3)
         self.assertEqual(attack[0].pop(), b[1,2])
 
     @unittest.skip("")
@@ -283,7 +283,7 @@ class TestBoard(unittest.TestCase):
         self.assertEqual(b[1,0].size, (2,2))
         self.assertEqual(b[0,2].size, (1,1))
         self.assertEqual(b[1,2].size, (3,1))
-        self.assertEqual(len(transform[0]), 3)
+        self.assertEqual(len(transform[0][0]), 3)
         self.assertEqual(b[4,2].size, (1,1))
         self.assertEqual(len(attack[0]), 1)
         self.assertEqual(attack[0].pop(), b[1,2])

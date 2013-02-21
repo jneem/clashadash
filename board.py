@@ -554,6 +554,8 @@ class Board:
         chargerPieces = set()
         # a set of pieces to be transformed (into walls)
         transformingPieces = set()
+        # counter for number of walls formed
+        wallCount = 0
         
         for unit in unitList:
             # Look at the pieces in the charging region.  If there are some,
@@ -567,9 +569,10 @@ class Board:
         unitList = sorted(list(self.units), key = lambda piece: piece.position[0])
         unitList = sorted(unitList, key = lambda piece: piece.position[1])
         for unit in unitList:
-            transformers = self._transformers(unit)
-            #if this unit can be transformed
+            transformers = self._transformers(unit)                
             if self._transformFull(unit) and all(unit.canTransform(x) for x in transformers):
+                if unit not in transformingPieces:                     
+                    wallCount += 1
                 #mark the unit and _all_of its transformers as transforming
                 transformingPieces.add(unit)
                 transformingPieces.update(transformers)
@@ -585,7 +588,6 @@ class Board:
         # being used to charge another piece.
         # transformingChargers are pieces that are transforming and
         # being used to charge another piece.
-        chargingChargers = chargerPieces.intersection(chargingPieces)
         transformingChargers = chargerPieces.intersection(transformingPieces)
         
         for unit in chargingPieces:
@@ -628,16 +630,15 @@ class Board:
                 # Replace the piece with its charged version 
                 self._replacePiece(unit, charged)
                 chargedPieces.append(charged)
-	#only call handler if some charged pieces were made
-	if len(chargedPieces) > 0:
-	    self.attackMade.callHandlers(set(chargedPieces))
-	#update the set of currentAttacks. 
-	    self.currentAttacks.update(set(chargedPieces))
+        #only call handler if some charged pieces were made
+        if len(chargedPieces) > 0:
+            self.attackMade.callHandlers(set(chargedPieces))
+        #update the set of currentAttacks. 
+            self.currentAttacks.update(set(chargedPieces))
         
         # Create walls.
         transformedPieces = []
         for unit in transformingPieces:
-            position = unit.position
             transformed = unit.transform()        
 
             #Vanilla case: unit is not involved in charging. 
@@ -662,9 +663,9 @@ class Board:
                     self._doShiftUp(col, oldRow, newRow)
                     self._appearPiece(transformed, unit.position)
                     transformedPieces.append(transformed)
-	#only call handler if some wall was made. 
-	if len(transformedPieces) > 0:
-	    self.wallMade.callHandlers(set(transformedPieces))
+        #only call handler if some wall was made. 
+        if len(transformedPieces) > 0:
+            self.wallMade.callHandlers([set(transformedPieces), wallCount])
                 
         return bool(chargedPieces or transformedPieces)
 
@@ -756,50 +757,52 @@ class Board:
         return True
     
     def beginTurn(self):
-	""" This function is called by gameManager at the start of this board's turn.
-	    All charging units are updated.
-	    For charging units ready to go, board emit an event, passing the name of the unit.
-	    This will get parsed by the opposing board.
-	"""
-	attackGuys = set()
-	for x in self.currentAttacks:
-	    x.update()
-	    if x.readyToAttack():
-		attackGuys.add(x)
-	#remove the attackGuys from the list of currentAttacks
-	self.currentAttacks.difference_update(attackGuys)
-	
-	self.turnBegun.callHandlers()
-	
-	if len(attackGuys) > 0: #send off the attackGuys to eventHandlers
-	    self.attackNow.callHandlers(set(attackGuys))
-	#now, we remove the attackGuys from the board
-	for x in attackGuys:
-	    self._deletePiece(x)
-	self.normalize()
+        """ This function is called by gameManager at the start of this board's turn.
+            All charging units are updated.
+            For charging units ready to go, board emit an event, passing the name of the unit.
+            This will get parsed by the opposing board.
+        """
+        attackGuys = set()
+        for x in self.currentAttacks:
+            x.update()
+            if x.readyToAttack():
+                    attackGuys.add(x)
+        #remove the attackGuys from the list of currentAttacks
+        self.currentAttacks.difference_update(attackGuys)
+        
+        self.turnBegun.callHandlers()
+        
+        if len(attackGuys) > 0: #send off the attackGuys to eventHandlers
+            self.attackNow.callHandlers(set(attackGuys))
+        #now, we remove the attackGuys from the board
+        for x in attackGuys:
+            self._deletePiece(x)
+        self.normalize()
 
     def damageCalculate(self, attackEnemies):
-	""" Handle damage calculations done on this board by attackEnemies """
-	for enemy in attackEnemies:
-	    col = enemy.position[1]
-	    #get all units in the column
-	    defendUnits = self._piecesInRegion(offset = [0,col], regionSize = [self.height, 1])
-	    enemyDead = False
-	    if len(defendUnits) == 0: #if there is no defense, then player take the blow.
-		self.playerIsHit.callHandlers(enemy)
-	    else:
-		#sort the defenders by increasing height
-		defendUnits = sorted(list(defendUnits), key = lambda piece: piece.position[0])
-		for defender in defendUnits:
-		    tmp = defender.toughness
-		    defender.toughness, defenderDead = defender.damage(enemy.toughness)
-		    enemy.toughness, enemyDead = enemy.damage(tmp)
-		    self.unitIsHit.callHandlers(defender, enemy)
-		    if defenderDead:
-			self._deletePiece(defender)
-		    if enemyDead:
-			break #no more attacking
-		if not enemyDead: #enemy is not dead after going through all the defenders
-		    self.playerIsHit.callHandlers(enemy)
-	self._reportPieceUpdates()
-	
+        """ Handle damage calculations done on this board by attackEnemies """
+        for enemy in attackEnemies:
+            col = enemy.position[1]
+            #get all units in the column
+            defendUnits = self._piecesInRegion(offset = [0,col], regionSize = [self.height, 1])
+            enemyDead = False
+            if len(defendUnits) == 0: #if there is no defense, then player take the blow.
+                self.playerIsHit.callHandlers(enemy)
+            else:
+                #sort the defenders by increasing height
+                defendUnits = sorted(list(defendUnits), key = lambda piece: piece.position[0])
+                for defender in defendUnits:
+                    tmp = defender.toughness
+                    defender.toughness, defenderDead = defender.damage(enemy.toughness)
+                    enemy.toughness, enemyDead = enemy.damage(tmp)
+                    self.unitIsHit.callHandlers(defender, enemy)
+                    if defenderDead:
+                        self._deletePiece(defender)
+                        if defender in self.currentAttacks:
+                            self.currentAttacks.remove(defender)          
+                    if enemyDead:
+                        break #no more attacking
+                if not enemyDead: #enemy is not dead after going through all the defenders
+                    self.playerIsHit.callHandlers(enemy)
+        self._reportPieceUpdates()
+        

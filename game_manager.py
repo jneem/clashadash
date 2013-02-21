@@ -43,8 +43,8 @@ class GameManager(object):
         board2.fusionMade.addHandler(self._fusionMade)
         board1.playerIsHit.addHandler(self._playerIsHit)
         board2.playerIsHit.addHandler(self._playerIsHit)
-	player1.justDied.addHandler(self._playerJustDied)
-	player2.justDied.addHandler(self._playerJustDied)
+        player1.justDied.addHandler(self._playerJustDied)
+        player2.justDied.addHandler(self._playerJustDied)
 	
         #the two boards handle each other damage
         board1.attackNow.addHandler(board2.damageCalculate)
@@ -125,7 +125,7 @@ class GameManager(object):
 
     def _wallMade(self, walls):
         """Count the number of walls made in board """
-        self.numWall += len(walls)
+        self.numWall += walls[1]
 
     def _attackMade(self, newAttacks):
         """Count number of attacks and links made in board """
