@@ -10,35 +10,27 @@ transparent colored mask on the selected piece.
 
 import cocos
 import logging
-from cocos.sprite import Sprite
-from cocos.layer.util_layers import ColorLayer
+from board_position_layer import BoardPositionLayer
 from event_hook import EventHook
 
-class SelectorLayer(cocos.layer.Layer):
-    def __init__(self, board, pieceHeight, pieceWidth, reflect):
-        """Creates a SelectorLayer.
+from cocos.sprite import Sprite
+from cocos.layer.util_layers import ColorLayer
 
-        board -- an instance of class Board.
-        pieceWidth -- the width (in pixels) of a square on the board.
-        pieceHeight -- the height (in pixels) of a square on the board.
-        boardHeight -- the height (in squares) of the Board.
-        reflect -- if False, row 0 will be displayed at the top.
+class SelectorLayer(BoardPositionLayer):
+    def __init__(self, boardLayer):
+        """Creates a SelectorLayer for a BoardLayer.
 
+        SelectorLayer is in charge of drawing the user controls and providing
+        the visual feedback for picking up pieces, etc.
         """
 
-        super(SelectorLayer, self).__init__()
-        self.board = board
-        self.pieceWidth = pieceWidth
-        self.pieceHeight = pieceHeight
-        self.reflect = reflect
+        super(SelectorLayer, self).__init__(boardLayer.pieceHeight,
+                                            boardLayer.pieceWidth,
+                                            boardLayer.reflect)
+        self.boardLayer = boardLayer
+        self.board = boardLayer.board
         self.currentCol = 0
-        self.currentRow = board.height - 1
-
-        self._holder = None
-        self._setupHolder()
-
-        self._square = None
-        self._updateSquare()
+        self.currentRow = self.board.height - 1
 
         # The piece that we are currently holding.
         self._heldPiece = None
@@ -46,11 +38,25 @@ class SelectorLayer(cocos.layer.Layer):
         # True if we are currently the active player.
         self.active = False
 
+        self._holder = None
+        self._setupHolder()
+
+        self._square = None
+        self._updateSquare()
+
+        # The move indicator is a semi-transparent piece that shows
+        # where a held piece will be moved to if it is dropped.
+        self._moveIndicator = None
+        self._updateMoveIndicator()
+
+
+
     @property
     def heldPiece(self):
         return self._heldPiece
 
     def dropPiece(self):
+        self.boardLayer.unhidePiece(self.heldPiece)
         self._heldPiece = None
         # TODO: visual feedback
 
@@ -65,17 +71,8 @@ class SelectorLayer(cocos.layer.Layer):
 
     def toggleActive(self):
         self.active = not self.active
-
-    def yAt(self, row):
-        """The y coordinate of the bottom edge of the given row."""
-        if self.reflect:
-            return row * self.pieceHeight
-        else:
-            return (self.board.height - row) * self.pieceHeight
-
-    def xAt(self, col):
-        """The x coordinate of the left edge of the given column."""
-        return col * self.pieceWidth
+        self._updateSquare()
+        self._updateHolder()
 
     def _updateSquare(self):
         """Update the position and size of the square layer."""
@@ -89,6 +86,11 @@ class SelectorLayer(cocos.layer.Layer):
             self.remove(self._square)
 
         piece = self.board[self.currentRow, self.currentCol]
+        # If a piece is being held, position the square at
+        # the piece's old position.
+        if self.heldPiece is not None:
+            piece = self.heldPiece
+
         fat = 1
         tall = 1
         row = self.currentRow
@@ -102,7 +104,9 @@ class SelectorLayer(cocos.layer.Layer):
         self._square = ColorLayer(255, 255, 255, 168,
                 width=width, height=height)
         self.add(self._square)
-        self._square.position = (self.xAt(col), self.yAt(row))
+
+        self._square.position = (self.xAt(col), self.yAt(row, tall))
+        self._square.visible = self.active
 
     def _updateHolder(self):
         """Update the position of the holder layer."""
@@ -112,6 +116,28 @@ class SelectorLayer(cocos.layer.Layer):
             y += self.pieceHeight/2
         x = self.xAt(self.currentCol)
         self._holder.position = (x, y)
+
+    def _updateMoveIndicator(self):
+        """Update the appearance of the move indicator."""
+
+        # Get rid of any unwanted indicator.
+        if self.heldPiece is None:
+            if self._moveIndicator is not None:
+                self.remove(self._moveIndicator)
+                self._moveIndicator = None
+            return
+
+        # Create an indicator if we need one.
+        if self._moveIndicator is None:
+            self._moveIndicator = self.createPieceLayer(self.heldPiece)
+            self.add(self._moveIndicator)
+            self._moveIndicator.opacity = 128
+
+        # Move the indicator to the correct place.
+        col = self.currentCol
+        row = self.board.rowToAdd(self.heldPiece, self.currentCol)
+        position = (self.xAt(col), self.yAt(row, self.heldPiece.height))
+        self._moveIndicator.position = position
 
     def moveHolder(self, direction):
         """Move holder left, right, up or down."""
@@ -135,8 +161,14 @@ class SelectorLayer(cocos.layer.Layer):
             if self.currentRow < self.board.height - 1:
                 self.currentRow += 1
 
+        self.refresh()
+
+    def refresh(self):
+        """Update the appearance to reflect any changes in the board."""
+
         self._updateHolder()
         self._updateSquare()
+        self._updateMoveIndicator()
 
     def pickUp(self):
         """Pick up a piece, if there is one at the current location AND
@@ -153,6 +185,8 @@ class SelectorLayer(cocos.layer.Layer):
                 logging.debug('picking up piece %s at (%d, %d)'
                         % (piece, self.currentRow, self.currentCol))
                 self._heldPiece = piece
+                self.boardLayer.hidePiece(piece)
+                self.refresh()
             # TODO: animate. Have mask over current position.
         else:
             logging.debug('not picking up piece at (%d, %d) because column height is %d'

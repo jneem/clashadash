@@ -31,19 +31,57 @@ class Piece(object):
                         whether pieces used to charge this piece can also be 
                         charged at that turn. NOTE: this requires the piece and
                         its charged form have the same size. 
+		    player:
+			a reference to the player that instantiated the piece
         """
 
         logging.debug('Creating a piece ' + str(description))
 
         self.description = description
         self.name = description.get('name', '')
-        self.position = [0,0]
+        self.position = None
+        self.oldPosition = None
         self.size = (int(description['height']), int(description['width']))
         self.moveable = bool(description.get('moveable', False))
         self.toughness = int(description.get('toughness', 0))
         self.slidePriority = int(description.get('slidePriority', 0))
         self._multiChargeable = bool(description.get('multiChargeable', False))
         self.image = description.get('image', '')
+        self.player = description.get('player')
+        
+        
+
+    @property
+    def row(self):
+        if self.position is not None:
+            return self.position[0]
+        return None
+
+    @property
+    def column(self):
+        if self.position is not None:
+            return self.position[1]
+        return None
+
+    @property
+    def oldRow(self):
+        if self.oldPosition is not None:
+            return self.oldPosition[0]
+        return None
+
+    @property
+    def oldColumn(self):
+        if self.oldPosition is not None:
+            return self.oldPosition[1]
+        return None
+
+    @property
+    def width(self):
+        return self.size[1]
+
+    @property
+    def height(self):
+        return self.size[0]
 
     def chargingRegion(self):
         """
@@ -68,6 +106,7 @@ class Piece(object):
         appropriate color, this piece will be transformed somehow
         (probably into a wall).
         """
+        
         return (0, 0)
 
     def canTransform(self, other):
@@ -99,14 +138,10 @@ class Piece(object):
         Damages this unit by a given amount.
 
         Returns a pair (remaining_strength, dead) where remaining_strength
-        says how much strength the attacker still has left, while dead is
+        says how much strength the current piece still has left, while dead is
         true if this piece died and should be removed.
         """
-        if self.toughness > 0:
-            return (attackStrength - self.toughness,
-                    attackStrength >= self.toughness)
-        else:
-            return (attackStrength, False)
+	return (self.toughness - attackStrength, self.toughness <= attackStrength)
 
     def charge(self):
         """

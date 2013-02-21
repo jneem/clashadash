@@ -9,37 +9,42 @@ from event_hook import EventHook
 import numpy as np
 import random
 
-class Player:
+class Player(object):
     """ Model class. Has player data: life, number of moves, special equip,
     champions available, mana,
     Has unit generating function. """
 
-    def __init__(self, unitFactory, life=100, maxMoves=3, maxMana=100,
-            maxUnitTotal=32, manaFactor=(1,1,1),
-            baseWeights=[], baseNames=[],
-            specialWeights=[], specialNames=[], specialRarity=[]):
+    def __init__(self, description, unitFactory,
+                 baseWeights=[], baseNames=[],
+                 specialWeights=[], specialNames=[], specialRarity=[]):
         """
         Parameters:
-            manaFactor: a tuple of length three.  Whenever a player does
-                a mana-generating action, the amount of mana they get
-                for it will be multiplied by the corresponding element
-                of this list:
-                    manaFactor[0] multiplies the mana given for creating links
-                    manaFactor[1] multiplies the mana given for fusing units
-                    manaFactor[2] multiplies the mana given for other moves
-                (TODO: consider making this a dict)
+            manaFactor: dict. Whenever a player does a mana-generating action (eg: link), 
+		the amount of mana they get for it will be multiplied 
+		by the number specified
+	    maxUnitTotal: max total number of units the player can call
+	    manaFactor: factors to be used in calculations. Choices are 1, 1.2, 1.5, 2
+		higher factor means mana fills up faster when making links/fusions/etc..
+	    maxLife: maximum life
+	    maxMoves: max number of moves per turn
+	    wall: dictionary of wall properties. Include
+		image
+		toughness
+		maxToughness
         """
+        self.description = description
+        self.name = description.get('name', '')
+        self.maxLife = int(description['maxLife'])
+        self.maxMoves = int(description['maxMoves'])
+        self.maxMana = int(description['maxMana'])
+        self.maxUnitTotal = int(description['maxUnitTotal'])
+        self.race = description['race']
+        self.wallDescription = description['wall']
 
-        self.life = life
-        self.maxMoves = maxMoves
-        self.maxMana = maxMana
-        self.maxUnitTotal = maxUnitTotal #max total number of units can call
+        self.manaFactor = {}
+        for key, value in description['manaFactor'].items():
+            self.manaFactor[key] = int(value)
         
-        #mana factors to be used in calculations. Choices are 1, 1.2, 1.5, 2
-        #higher factor means mana fills up faster when make links/fusion/etc..
-        #manaFactor = [link, fuse, move]
-        self.manaFactor = manaFactor
-
         #weight distribution of base units. Integers, sum to 3
         self.baseWeights = np.array(baseWeights)
         self.baseNames = baseNames
@@ -53,15 +58,49 @@ class Player:
         self.unitFactory = unitFactory
 
         #set effective params
-        self.mana = 0
+        self._mana = 0
+        self._life = self.maxLife
         self.usedMoves = 0
         # After losing special units, there is a temporary penalty to
         # its weight; effWeights keeps track of the possibly penalized value.
         self.effWeights = self.specialWeights.copy() #effective unit weights
 
-        #event emitters
+        # Event emitters
         self.doneTurn = EventHook()
+        self.justDied = EventHook()
 
+        # Callbacks take a single argument that is the new mana value.
+        self.manaChanged = EventHook()
+
+        # Callbacks take a single argument that is the new life value.
+        self.lifeChanged = EventHook()
+        
+        
+
+    @property
+    def mana(self):
+        return self._mana
+
+    @mana.setter
+    def mana(self, m):
+        m = min(m, self.maxMana)
+        self._mana = m
+        self.manaChanged.callHandlers(m)
+
+    @property
+    def life(self):
+        return self._life
+
+    @life.setter
+    def life(self, l):
+	delta = l - self._life
+        self._life = l
+        self.lifeChanged.callHandlers(l)
+        if delta < 0: #loss of life contributes towards increase in mana
+	    self.mana = self.mana - delta
+	if self._life <= 0: #if dead
+	    self.justDied.callHandlers()
+	    
     def setGameManager(self, gameManager):
         self.gameManager = gameManager
 
@@ -72,7 +111,7 @@ class Player:
         effOdds = self.specialRarity * self.effWeights
         weights = [np.random.uniform()*x for x in effOdds]
         unitName = self.specialNames[np.argmax(weights)]
-        unit = self.unitFactory.create(unitName, self.randomColor())
+        unit = self.unitFactory.create(unitName, self.randomColor(), player=self)
         return unit
 
     def randomColor(self):
@@ -84,7 +123,7 @@ class Player:
         """
         weights = [np.random.uniform()*x for x in self.baseWeights]
         unitName = self.baseNames[np.argmax(weights)]
-        unit = self.unitFactory.create(unitName, self.randomColor())
+        unit = self.unitFactory.create(unitName, self.randomColor(), player = self)
         return unit
 
     def getRandomUnit(self):
@@ -98,5 +137,3 @@ class Player:
         else:
             unit = self.getBaseUnit()
         return unit
-
-

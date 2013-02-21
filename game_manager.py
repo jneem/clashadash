@@ -7,7 +7,7 @@ Created on Thu May 17 17:50:36 2012
 import logging
 from event_hook import EventHook
 
-class GameManager:
+class GameManager(object):
     """Runs the game.
 
     Keeps track of whose turn it is and how many moves they have left.
@@ -17,9 +17,8 @@ class GameManager:
         switchTurn: triggered whenever a player ends their turn.
         
     Events handled:
-        wallMade and chargeMade from board. 
-        Triggered when wall and charging guys are formed.        
-        GameManager uses this information to make free moves.
+        wallMade, chargeMade, and fusionMade from board:
+            this information is used to make free moves and update mana.
     """
 
     def __init__(self, player1, board1, player2, board2):
@@ -42,6 +41,16 @@ class GameManager:
         board2.attackMade.addHandler(self._attackMade)
         board1.fusionMade.addHandler(self._fusionMade)
         board2.fusionMade.addHandler(self._fusionMade)
+        board1.playerIsHit.addHandler(self._playerIsHit)
+        board2.playerIsHit.addHandler(self._playerIsHit)
+	player1.justDied.addHandler(self._playerJustDied)
+	player2.justDied.addHandler(self._playerJustDied)
+	
+        #the two boards handle each other damage
+        board1.attackNow.addHandler(board2.damageCalculate)
+        board2.attackNow.addHandler(board1.damageCalculate)
+        
+        
 
     @property
     def currentPlayer(self):
@@ -50,7 +59,15 @@ class GameManager:
     @property
     def currentBoard(self):
         return self._currentPlayerBoard[1]
-        
+    
+    @property
+    def otherPlayer(self):
+	return self._otherPlayerBoard[0]
+    
+    @property
+    def otherBoard(self):
+	return self._otherPlayerBoard[1]
+    
     def movePiece(self, piece, col):
         """Puts piece to column col.
 
@@ -73,8 +90,13 @@ class GameManager:
         player has left, and switches players if necessary.
         """
         if self.currentBoard[position] is not None:
+            logging.debug("Deleting the piece %s at position %s"
+                          % (self.currentBoard[position], position))
+
             self.currentBoard.deletePiece(self.currentBoard[position])
             self._updateMoves(offset = 0)
+        else:
+            logging.debug("Tried to delete an empty square %s" % position)
 
     def canPickUp(self, position):
         """Checks if the current player can pick up a given piece."""
@@ -85,9 +107,7 @@ class GameManager:
         """Ends the active player's turn.
 
         If the player has moves left, increases that player's mana.
-        
         Toggles the current player. 
-
         Triggers the switchTurn event.
         """
         moveLeft = self.currentPlayer.maxMoves - self.currentPlayer.usedMoves
@@ -100,6 +120,8 @@ class GameManager:
         self._otherPlayerBoard = tmp
 
         self.switchTurn.callHandlers()
+        #begin the new turn
+        self.currentBoard.beginTurn()    
 
     def _wallMade(self, walls):
         """Count the number of walls made in board """
@@ -119,20 +141,20 @@ class GameManager:
         """ Update currentPlayer's mana depend on the event triggered. 
         
         Event types: "link", "fuse", "move", "useMana" """
-        if evt == "link":
-            self.currentPlayer.mana += self.currentPlayer.manaFactor[0]*num
-            if self.currentPlayer.mana >= self.currentPlayer.maxMana:
-                self.currentPlayer.mana = self.currentPlayer.mana
-        elif evt == "fuse":
-            self.currentPlayer.mana += self.currentPlayer.manaFactor[1]*num
-            if self.currentPlayer.mana >= self.currentPlayer.maxMana:
-                self.currentPlayer.mana = self.currentPlayer.mana            
-        elif evt == "move": 
-            self.currentPlayer.mana += self.currentPlayer.manaFactor[2]*num
-            if self.currentPlayer.mana >= self.currentPlayer.maxMana:
-                self.currentPlayer.mana = self.currentPlayer.mana      
-        elif evt == "useMana": #only called if mana is full
+
+        if evt == "useMana": # We should only be here if the mana is full.
             self.currentPlayer.mana = 0
+        else:
+            logging.debug('updating mana for event "%s" x%s' % (evt, num))
+            factor = 0
+            try:
+                factor = self.currentPlayer.manaFactor[evt]
+            except KeyError:
+                logging.error('player description missing manaFactor ' + evt)
+
+            logging.debug('increment is %s' % factor * num)
+            self.currentPlayer.mana += factor * num
+            logging.debug('new mana is %s' % self.currentPlayer.mana)
             
     def useMana(self):
         """ Use mana if allowed. Return True if can use, False otherwise """
@@ -184,7 +206,19 @@ class GameManager:
         
         if self.currentPlayer.usedMoves == self.currentPlayer.maxMoves:
             self.endTurn()
+    
+    def _playerIsHit(self, enemy):
+	""" Player is hit by unit enemy. Note that currentPlayer is doing the attacking. 
+	"""
+	self.otherPlayer.life = self.otherPlayer.life - enemy.toughness    
 
+    #TODO
+    def _playerJustDied(self): 
+	""" Player just died event handler."""
+	logging.debug("Player %s just died" % self.otherPlayer.name)
+	pass
+	
+    
     def callPieces(self):
         """Current player wants to call some pieces.
 

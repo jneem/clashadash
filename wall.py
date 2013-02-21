@@ -1,7 +1,7 @@
 from piece import Piece
 
 class Wall(Piece):
-    def __init__(self, description):
+    def __init__(self, description, position):
         desc = description.copy()
 
         # Add default values for various properties that Piece expects.
@@ -10,7 +10,11 @@ class Wall(Piece):
         desc['width'] = 1
         super(Wall, self).__init__(desc)
 
+	self.image = desc['image']
+	self.toughness = int(desc['toughness'])
         self.maxToughness = int(desc['maxToughness'])
+        self.position = position
+        
         self.slidePriority = 1000
         self.moveable = True
 

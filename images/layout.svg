@@ -13,8 +13,8 @@
    height="768"
    id="svg2985"
    version="1.1"
-   inkscape:version="0.48.3.1 r9886"
-   sodipodi:docname="New document 2">
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="layout.svg">
   <defs
      id="defs2987">
     <marker
@@ -115,6 +115,34 @@
          transform="matrix(-0.8,0,0,-0.8,-10,0)"
          inkscape:connector-curvature="0" />
     </marker>
+    <marker
+       inkscape:stockid="Arrow1Lstart"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow1Lstart-5"
+       style="overflow:visible">
+      <path
+         id="path3767-0"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 z"
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt"
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow1Lend-1"
+       style="overflow:visible">
+      <path
+         id="path3770-3"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 z"
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -123,16 +151,16 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.74479167"
+     inkscape:zoom="0.96289062"
      inkscape:cx="512"
-     inkscape:cy="384"
+     inkscape:cy="-43.996633"
      inkscape:current-layer="layer1"
      inkscape:document-units="px"
      showgrid="false"
-     inkscape:window-width="1276"
-     inkscape:window-height="752"
+     inkscape:window-width="1280"
+     inkscape:window-height="800"
      inkscape:window-x="0"
-     inkscape:window-y="18"
+     inkscape:window-y="0"
      inkscape:window-maximized="0" />
   <metadata
      id="metadata2990">
@@ -142,7 +170,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -392,5 +420,22 @@
          id="tspan8165-3"
          x="98.701843"
          y="460.94009">256 px</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend)"
+       d="m 462.87322,528.08553 0,71.13116"
+       id="path6767-9"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:16px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       x="471.20657"
+       y="573.2157"
+       id="text7141-8"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan7143-8"
+         x="471.20657"
+         y="573.2157">72 px</tspan></text>
   </g>
 </svg>
