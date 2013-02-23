@@ -2,8 +2,8 @@ import cocos
 import pyglet
 import logging
 from pyglet.graphics import *
+import cocos.text
 
-# TODO: add text instead of just a bar.
 class MeterLayer(cocos.layer.Layer):
     """Displays a colored bar representing a quantity.
     """
@@ -28,6 +28,11 @@ class MeterLayer(cocos.layer.Layer):
         self._width = width
         self._height = height
 
+        #Add a text field to indicate the current mana
+        self._tf = cocos.text.Label(str(self._value), anchor_x = "center", 
+                                    anchor_y = "center", font_size = 24)
+        self.add(self._tf)
+        
         # Add the vertices for the foreground and background bars.
         self._bgVertices = self._batch.add(4, pyglet.gl.GL_QUADS, self._bgGroup,
                 ('v2i', (0, 0,
@@ -38,6 +43,7 @@ class MeterLayer(cocos.layer.Layer):
         self._fgVertices = self._batch.add(4, pyglet.gl.GL_QUADS, self._fgGroup,
                 'v2i', 'c4B')
         self._updateBar()
+        
 
     def draw(self):
         super(MeterLayer, self).draw()
@@ -59,7 +65,8 @@ class MeterLayer(cocos.layer.Layer):
 
         self._fgVertices.vertices[:] = (0, 0, 0, height, width, height, width, 0)
         self._fgVertices.colors[:] = color * 4
-
+        self._tf.element.text = str(self._value)
+        
     @property
     def value(self):
         return self._value
