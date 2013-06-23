@@ -406,10 +406,21 @@ class Board:
             raise IndexError("Trying to add piece outside of board")
             
         row = self.rowToAdd(piece, col)
-        piece.position = [row, col]
-        self.units.add(piece)
-        self._addToGrid(piece)        
-        self._updatedPieces.add(piece)
+        self._appearPiece(piece, [row, col])
+
+    def addPieceAtPosition(self, piece, row, col):
+        """Add a piece at the given position.
+
+        Raise an IndexError if the piece doesn't fit at the
+        given position.
+        Note that this function does not normalize the board
+        automatically.
+        """
+        
+        try:
+            self._appearPiece(piece, [row, col])
+        except ValueError:
+            raise IndexError("Trying to appear piece in an invalid position.")
 
     def deletePiece(self, piece):
         """Delete a piece and then normalize."""
@@ -753,7 +764,7 @@ class Board:
             for i in range(row, row + uheight):
                 for j in range(col, col + uwidth):
                     if self[i,j] != u:
-                        raise ValueError("piece %s position not aligned with board", u.name)
+                        return False
         return True
     
     def beginTurn(self):
