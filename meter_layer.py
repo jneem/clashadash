@@ -8,13 +8,14 @@ class MeterLayer(cocos.layer.Layer):
     """Displays a colored bar representing a quantity.
     """
 
-    def __init__(self, width, height, maxValue, bgColor, emptyColor, fullColor):
+    def __init__(self, width, height, maxValue, bgColor, emptyColor, fullColor, text=True, horizontal=True):
         """Creates a MeterLayer.
 
         width and height give the dimensions (in pixels) of the bar
         bgColor is the color of the bar's background as an (r, g, b, a) tuple
         emptyColor is the color of the bar when it is empty
         fullColor is the color of the bar when it is full
+        text, if True, means that there will be a numeric label displayed
         """
 
         super(MeterLayer, self).__init__()
@@ -27,23 +28,46 @@ class MeterLayer(cocos.layer.Layer):
         self._fullColor = fullColor
         self._width = width
         self._height = height
+        self._horizontal = horizontal
 
-        #Add a text field to indicate the current mana
-        self._tf = cocos.text.Label(str(self._value), anchor_x = "center", 
-                                    anchor_y = "center", font_size = 24)
-        self.add(self._tf)
+        # For drawing a vertical bar, we just swap width and height.
+        if horizontal == False:
+            self._width = height
+            self._height = width
+
+        # Add a text field to indicate the current mana
+        if text:
+            # For a horizontal bar, the text is positioned above the bar
+            # and aligned with the left side.
+            # For a vertical bar, the text is positioned to the left of
+            # the bar and aligned with the bottom.
+            anchor_x = "left"
+            anchor_y = "bottom"
+            pos = (0, height)
+            if not horizontal:
+                anchor_x = "right"
+                pos = (0, 0)
+
+            self._tf = cocos.text.Label(str(self._value), anchor_x = anchor_x, 
+                                        anchor_y = anchor_y, font_size = 24)
+            self._tf.position = pos
+            self.add(self._tf)
+        else:
+            self._tf = None
         
         # Add the vertices for the foreground and background bars.
         self._bgVertices = self._batch.add(4, pyglet.gl.GL_QUADS, self._bgGroup,
-                ('v2i', (0, 0,
-                         0, height,
-                         width, height,
-                         width, 0)),
+                ('v2i', self.rectangle(width, height)),
                 ('c4B', bgColor * 4))
         self._fgVertices = self._batch.add(4, pyglet.gl.GL_QUADS, self._fgGroup,
                 'v2i', 'c4B')
         self._updateBar()
         
+    def rectangle(self, width, height):
+        if self._horizontal:
+            return (0, 0, 0, height, width, height, width, 0)
+        else:
+            return (0, 0, 0, width, height, width, height, 0)
 
     def draw(self):
         super(MeterLayer, self).draw()
@@ -63,9 +87,11 @@ class MeterLayer(cocos.layer.Layer):
         width = int(round(self._width * fraction))
         height = self._height
 
-        self._fgVertices.vertices[:] = (0, 0, 0, height, width, height, width, 0)
+        self._fgVertices.vertices[:] = self.rectangle(width, height)
         self._fgVertices.colors[:] = color * 4
-        self._tf.element.text = str(self._value)
+
+        if self._tf is not None:
+            self._tf.element.text = str(self._value)
         
     @property
     def value(self):
@@ -80,5 +106,10 @@ class MeterLayer(cocos.layer.Layer):
     # Provide a function for setting the value, since assignments can't
     # be used in lambdas.
     def setValue(self, v):
+        self.value = v
+
+    def setValueAndMax(self, v, m):
+        """Set value and maxValue at the same time."""
+        self._maxValue = m
         self.value = v
 

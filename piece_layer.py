@@ -2,6 +2,7 @@ import cocos
 from cocos.sprite import Sprite
 from cocos.layer.util_layers import ColorLayer
 from cocos.text import Label
+from meter_layer import MeterLayer
 
 import logging
 
@@ -84,6 +85,8 @@ class PieceLayer(cocos.layer.Layer):
 
         self._turnIndicator = None
         self._updateTurnIndicator()
+        self._chargeIndicator = None
+        self._updateChargeIndicator()
 
     @property
     def opacity(self):
@@ -120,7 +123,28 @@ class PieceLayer(cocos.layer.Layer):
                 self.remove(self._turnIndicator)
                 self._turnIndicator = None
 
+    def _updateChargeIndicator(self):
+        """Displays a bar indicating how charged the unit is."""
+
+        if hasattr(self._piece, 'chargeAtTurn') and hasattr(self._piece, 'turn'):
+            maxValue = self._piece.chargeAtTurn(0)
+            value = self._piece.toughness
+            if self._chargeIndicator is None:
+                bgColor = (255, 255, 255, 0)
+                emptyColor = (255, 0, 0, 255)
+                fullColor = (0, 255, 0, 255)
+                self._chargeIndicator = MeterLayer(8, self.height, maxValue, bgColor, emptyColor, fullColor, horizontal=False)
+                self.add(self._chargeIndicator)
+
+            self._chargeIndicator.setValueAndMax(value, maxValue)
+            self._chargeIndicator.position = (self.width-8, 0)
+        else:
+            if self._chargeIndicator is not None:
+                self.remove(self._chargeIndicator)
+                self._chargeIndicator = None
+
     def refresh(self):
         self._updateTurnIndicator()
+        self._updateChargeIndicator()
 
 
