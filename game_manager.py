@@ -184,7 +184,8 @@ class GameManager(object):
     def _updateMoves(self, offset = 1):
         """ 
         Computes the new number of moves, including free moves earned.
-        Update mana, reset parameters, and ends turn if no moves left.
+        Update mana, number of units can call,
+        reset parameters, and ends turn if no moves left.
         
         offset = 1 by default, 0 if came from deleting pieces
         """
@@ -197,12 +198,13 @@ class GameManager(object):
             #reset numWall and numAttack
             self.numWall = 0
             self.numAttack = 0
-        #update mana for links
+
         self._updateMana("link", self.numLink)
         self.numLink = 0
-        #update mana for fusions
         self._updateMana("fuse", self.numFusion)
         self.numFusion = 0
+        
+        self.currentPlayer.calledUnit = len(self.currentBoard.units)
         
         if self.currentPlayer.usedMoves == self.currentPlayer.maxMoves:
             self.endTurn()

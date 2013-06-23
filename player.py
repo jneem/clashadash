@@ -8,6 +8,7 @@ Created on Thu May 17 18:20:27 2012
 from event_hook import EventHook
 import numpy as np
 import random
+import logging
 
 class Player(object):
     """ Model class. Has player data: life, number of moves, special equip,
@@ -60,7 +61,8 @@ class Player(object):
         #set effective params
         self._mana = 0
         self._life = self.maxLife
-        self.usedMoves = 0
+        self._usedMoves = 0
+        self._calledUnit = 0
         # After losing special units, there is a temporary penalty to
         # its weight; effWeights keeps track of the possibly penalized value.
         self.effWeights = self.specialWeights.copy() #effective unit weights
@@ -69,13 +71,11 @@ class Player(object):
         self.doneTurn = EventHook()
         self.justDied = EventHook()
 
-        # Callbacks take a single argument that is the new mana value.
+        # Callbacks take a single argument that is the new value
         self.manaChanged = EventHook()
-
-        # Callbacks take a single argument that is the new life value.
         self.lifeChanged = EventHook()
-        
-        
+        self.moveChanged = EventHook()
+        self.unitChanged = EventHook()
 
     @property
     def mana(self):
@@ -88,18 +88,36 @@ class Player(object):
         self.manaChanged.callHandlers(m)
 
     @property
+    def usedMoves(self):
+        return self._usedMoves
+        
+    @usedMoves.setter
+    def usedMoves(self, u):
+        self._usedMoves = u
+        self.moveChanged.callHandlers(u)
+
+    @property
     def life(self):
         return self._life
 
     @life.setter
     def life(self, l):
-	delta = l - self._life
+        delta = l - self._life
         self._life = l
         self.lifeChanged.callHandlers(l)
         if delta < 0: #loss of life contributes towards increase in mana
-	    self.mana = self.mana - delta
-	if self._life <= 0: #if dead
-	    self.justDied.callHandlers()
+            self.mana = self.mana - delta
+        if self._life <= 0: #if dead
+            self.justDied.callHandlers()
+
+    @property
+    def calledUnit(self):
+        return self._calledUnit
+    
+    @calledUnit.setter
+    def calledUnit(self, u):
+        self._calledUnit = u
+        self.unitChanged.callHandlers(u)
 	    
     def setGameManager(self, gameManager):
         self.gameManager = gameManager

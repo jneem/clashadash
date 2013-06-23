@@ -3,6 +3,7 @@ import logging
 from board_layer import BoardLayer
 from selector_layer import SelectorLayer
 from meter_layer import MeterLayer
+from textbox_layer import TextBoxLayer
 import pyglet as pyglet
 
 # See layout.svg for a diagram of all these constants.
@@ -91,12 +92,22 @@ class GameLayer(cocos.layer.Layer):
         self.add(manaMeter)
         player.manaChanged.addHandler(lambda x: manaMeter.setValue(x))
 
+        movesTextBox = TextBoxLayer(player.maxMoves)
+        self.add(movesTextBox)
+        player.moveChanged.addHandler(lambda x: movesTextBox.setValue(x))
+
+        unitsTextBox = TextBoxLayer(player.maxUnitTotal)
+        self.add(unitsTextBox)
+        player.unitChanged.addHandler(lambda x: unitsTextBox.setValue(x))
+
         boardY = BOTTOM_MARGIN
         if not isBottomPlayer:
             boardY += BOARD_HEIGHT + BOARD_GAP
 
         lifeMeter.position = (32, boardY + 112 + 16 + 32)
         manaMeter.position = (32, boardY + 112)
+        movesTextBox.position = (32, boardY + 80)
+        unitsTextBox.position = (32, boardY + 50)
 
     @property
     def currentBoard(self):
