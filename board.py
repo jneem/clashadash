@@ -770,28 +770,29 @@ class Board:
     def beginTurn(self):
         """ This function is called by gameManager at the start of this board's turn.
             All charging units are updated.
-            For charging units ready to go, board emit an event, passing the name of the unit.
-            This will get parsed by the opposing board.
+            If there are units attacking this turn, the board emits the attackNow event, passing the set of attacking units.
         """
         attackGuys = set()
         for x in self.currentAttacks:
             x.update()
             if x.readyToAttack():
                     attackGuys.add(x)
-        #remove the attackGuys from the list of currentAttacks
+        # Remove the attackGuys from the list of currentAttacks.
         self.currentAttacks.difference_update(attackGuys)
         
         self.turnBegun.callHandlers()
         
-        if len(attackGuys) > 0: #send off the attackGuys to eventHandlers
+        if len(attackGuys) > 0: # Send off the attackGuys to eventHandlers.
             self.attackNow.callHandlers(set(attackGuys))
-        #now, we remove the attackGuys from the board
+        # Now, we remove the attackGuys from the board.
         for x in attackGuys:
             self._deletePiece(x)
         self.normalize()
 
     def damageCalculate(self, attackEnemies):
         """ Handle damage calculations done on this board by attackEnemies """
+
+        # TODO: this doesn't currently define the order of attacking units.
         for enemy in attackEnemies:
             col = enemy.position[1]
             #get all units in the column
