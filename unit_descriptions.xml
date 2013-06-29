@@ -17,4 +17,22 @@
             <imageBase>swordCharging</imageBase>
         </charge>
     </unit>
+    <unit>
+        <name>Angel</name>
+        <toughness>23</toughness>
+        <height>2</height>
+        <width>2</width>
+        <moveable>True</moveable>
+        <slidePriority>0</slidePriority>
+        <imageBase>angel</imageBase>
+        <charge>
+            <maxPower>115</maxPower>
+            <initialPower>40</initialPower>
+            <height>2</height>
+            <width>2</width>
+            <turns>6</turns>
+            <slidePriority>1</slidePriority>
+            <imageBase>angel</imageBase>
+        </charge>
+    </unit>
 </unitDescriptions>

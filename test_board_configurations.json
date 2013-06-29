@@ -125,5 +125,30 @@
         ,{ "position": [4, 2], "size": [1, 1], "name": "Swordsman" }
     ]
 }
+,
+{
+    "comment": "Fatty with a skinny underneath, right corner. Collison test."
+    ,"dimensions":[5,5]
+    ,"startConfig": [
+        { "position":[1,0], "size": [2,2], "name": "Angel"}
+        ,{ "position": [0,1]}
+    ]
+    ,"endConfig": [
+        { "position":[1,0], "size": [2,2], "name": "Angel"}
+        ,{ "position": [0,1]}
+    ]
+}
+,
+{
+    "comment": "Fatty with a skinny underneath, left corner. Collison test."
+    ,"dimensions":[5,5]
+    ,"startConfig": [
+        { "position":[1,0], "size": [2,2], "name": "Angel"}
+        ,{ "position": [0,0]}
+    ]
+    ,"endConfig": [
+        { "position":[1,0], "size": [2,2], "name": "Angel"}
+        ,{ "position": [0,0]}
+    ]
+}
 ]
-

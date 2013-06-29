@@ -387,10 +387,12 @@ class Board:
 
         tall = piece.size[0]
         fat = piece.size[1]
-        row = self.rowToAdd(piece, col)
 
-        return row + tall <= self.grid.shape[0] and \
-            col + fat <= self.grid.shape[1]
+        if col + fat > self.grid.shape[1]:
+            return False
+
+        row = self.rowToAdd(piece, col)
+        return row + tall <= self.grid.shape[0]
 
     def addPiece(self, piece, col):
         """Add a piece to the given column.
@@ -733,7 +735,7 @@ class Board:
         Return None if cannot be added anywhere.
         """
         logging.debug(str([u.position for u in self.units]))
-        #choose a random ordering of the columns
+        # choose a random ordering of the columns
         columnList = list(np.random.permutation(self.width))
         for col in columnList:
             # Make a copy of the current board, then add a copy of the
