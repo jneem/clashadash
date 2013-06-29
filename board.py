@@ -226,8 +226,7 @@ class Board:
                     fatty.add(unit)
                 #check the next height level
                 i += unit.size[0]
-
-            #check for fatty disalignment
+        #check for fatty disalignment
         trynum = 0
         while self._doAlignFatty(fatty):
             trynum = trynum + 1
@@ -236,13 +235,24 @@ class Board:
                 logging.error('shiftByPriority attempting to realgin fatty over 100 times')
         return updated
 
+    def _unitIsHere(self, unit, pos):
+        """Returns true if unit.position is pos, and
+        board corresponding squares point to unit."""
+        if unit.position != pos:
+            return False
+        for i in range(0, unit.size[0]):
+            for j in range(0, unit.size[1]):
+                if self[pos[0] + i, pos[1]+j] != unit:
+                    return False
+        return True
+        
     def _doAlignFatty(self, fatList):
         """ correct guys in the fatList if unaligned
         these guys have to have size 2x2
         return True if did something """
         updated = False
         for unit in fatList:
-            if self[unit.position[0]+1,unit.position[1]+1] != unit: #if not aligned
+            if not self._unitIsHere(unit, unit.position): #if not aligned
                 logging.debug("Fatty named %s is not aligned." % unit.name)
                 #flag updated as True since we'll need another iteration
                 updated = True

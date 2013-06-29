@@ -4,6 +4,9 @@ import json
 from board import Board
 from piece import Piece
 from described_object_factory import UnitFactory, PlayerFactory
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 class TestBoardConfigurations(unittest.TestCase):
     def setUp(self):
@@ -102,7 +105,11 @@ class TestBoardConfigurations(unittest.TestCase):
 
         for key, val in pieceDesc.items():
             if key == 'position': continue
-            setattr(piece, key, val)
+            #we want size to be a tuple
+            if key == 'size': 
+                piece.size = tuple(val)
+            else:
+                setattr(piece, key, val)
 
         board.addPieceAtPosition(piece, position[0], position[1])
 
