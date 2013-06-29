@@ -234,6 +234,7 @@ class GameManager(object):
             unit = self.currentPlayer.getRandomUnit()
             col = self.currentBoard.colToAdd(unit)
             if col is not None:
+                logging.debug('Trying to add a unit of size %s to column %d' %(unit.size, col))                
                 self.currentBoard.addPiece(unit, col)
                 pieceLeft = pieceLeft - 1
 

@@ -159,7 +159,7 @@ class BoardLayer(BoardPositionLayer):
         pl.x = self.xAt(position[1])
 
     def _deletePiece(self, piece):
-        pl = self.pieceLayers[piece]
+        pl = self.pieceLayers.pop(piece)
         self.remove(pl)
 
     def refreshPieces(self):

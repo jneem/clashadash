@@ -762,6 +762,8 @@ class Board:
     def ghostBoard(self):
         """ Return a hard copy of board with ghost pieces """ 
         boardCopy = Board(self.height, self.width)
+        if not self.selfConsistent():
+            logging.error("Attempting to make a ghost board of an inconsistent board")
         for u in self.units:
             ghost = GhostPiece(u)
             boardCopy._appearPiece(ghost, u.position)
@@ -770,13 +772,8 @@ class Board:
     def selfConsistent(self):
         """ Return true if board and units agree on their positions"""
         for u in self.units:
-            row,col = u.position
-            uheight, uwidth = u.size
-            #check all squares that this unit should occupy
-            for i in range(row, row + uheight):
-                for j in range(col, col + uwidth):
-                    if self[i,j] != u:
-                        return False
+            if not self._unitIsHere(u, u.position):
+                return False
         return True
     
     def beginTurn(self):
