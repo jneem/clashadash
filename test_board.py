@@ -108,8 +108,6 @@ class TestBoard(unittest.TestCase):
         with self.assertRaises(IndexError):
 	    b.addPiece(DummyPiece(1,1), 1)
 
-    #TODO: T shape with fatties disalignment.
-    
     #@unittest.skip("")
     def testSlideFatty(self):
         b = Board(4, 4)
@@ -170,6 +168,25 @@ class TestBoard(unittest.TestCase):
         self.assertEqual(fat1.position, [2,1])
         self.assertTrue(b.selfConsistent)
         
+    def testColToAdd(self):
+        # We create a variety of boards in which there is only one place
+        # to add a new piece. Then we check that colToAdd puts the piece
+        # in the correct place.
+        b = Board(2, 4)
+        b.addPiece(DummyPiece(1, 1), 0)
+        b.addPiece(DummyPiece(1, 1), 1)
+        self.assertEqual(b.colToAdd(DummyPiece(2, 2)), 2)
+
+        b = Board(2, 4)
+        b.addPiece(DummyPiece(1, 1), 1)
+        self.assertEqual(b.colToAdd(DummyPiece(2, 2)), 2)
+
+        b = Board(2, 4)
+        b.addPiece(DummyPiece(1, 1), 2)
+        self.assertEqual(b.colToAdd(DummyPiece(2, 2)), 0)
+
+        b.addPiece(DummyPiece(1, 1), 1)
+        self.assertEqual(b.colToAdd(DummyPiece(2, 2)), None)
 
 if __name__ == '__main__':
     unittest.main()

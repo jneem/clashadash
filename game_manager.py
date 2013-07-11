@@ -242,8 +242,9 @@ class GameManager(object):
         while pieceLeft > 0:
             unit = self.currentPlayer.getRandomUnit(self.otherPlayer._calledFatties)
             col = self.currentBoard.colToAdd(unit)
-            if col is not None:
-                logging.debug('Attempting to add unit size %s to column %d' %(unit.size, col))                
+            if col is None:
+                logging.warning('A piece with dimensions %d x %d did not fit on the board' % (unit.size[0], unit.size[1]))
+            else:
                 self.currentBoard.addPiece(unit, col)
                 pieceLeft = pieceLeft - 1
                 if(unit.size == (2,2)):
