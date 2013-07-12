@@ -4,6 +4,7 @@ import numpy as np
 import logging
 from event_hook import EventHook
 from ghost_piece import GhostPiece
+from attack_summary import AttackSummary
 
 class Board:
     """Represents one player's board.
@@ -60,8 +61,9 @@ class Board:
         # Event handler that will be triggered when an enemy unit hits the board owner
         self.playerIsHit = EventHook()
         
-        # Event handler that will be triggered when a unit is hit by an enemy unit
-        self.unitIsHit = EventHook()
+        # Event handler that will be triggered when an emeny unit attacks.
+        # The argument to the event handler is a list of AttackSummary.
+        self.attackReceived = EventHook()
         
         # Event handler that will be triggered when the turn begins, 
         #after all currentAttacks have been updated
@@ -525,6 +527,8 @@ class Board:
         self.units.remove(piece)
         self._deleteFromGrid(piece)
         self._updatedPieces.add(piece)
+        self.currentAttacks.discard(piece)
+        piece.oldPosition = piece.position
         piece.position = None
 
     def _piecesInRegion(self, offset, regionSize):
@@ -825,29 +829,38 @@ class Board:
         """ Handle damage calculations done on this board by attackEnemies """
 
         # TODO: this doesn't currently define the order of attacking units.
+        summaries = []
         for enemy in attackEnemies:
-            col = enemy.position[1]
-            #get all units in the column
-            defendUnits = self._piecesInRegion(offset = [0,col], regionSize = [self.height, 1])
+            col = enemy.column
+            # Find all the units in front of the enemy.
+            defendUnits = self._piecesInRegion(offset = [0,col], regionSize = [self.height, enemy.width])
+            defendUnits = sorted(list(defendUnits), key = lambda piece: piece.row)
+
+            # TODO: if there are two units at the same height, and there
+            # is not enough strength to kill both of them, then the damage
+            # should be split.
             enemyDead = False
-            if len(defendUnits) == 0: #if there is no defense, then player take the blow.
-                self.playerIsHit.callHandlers(enemy)
-            else:
-                #sort the defenders by increasing height
-                defendUnits = sorted(list(defendUnits), key = lambda piece: piece.position[0])
-                for defender in defendUnits:
-                    tmp = defender.toughness
-                    defender.toughness, defenderDead = defender.damage(enemy.toughness)
-                    enemy.toughness, enemyDead = enemy.damage(tmp)
-                    self.unitIsHit.callHandlers(defender, enemy)
-                    if defenderDead:
-                        self._deletePiece(defender)
-                        if defender in self.currentAttacks:
-                            self.currentAttacks.remove(defender)          
-                    if enemyDead:
-                        break #no more attacking
-                if not enemyDead: #enemy is not dead after going through all the defenders
-                    self.playerIsHit.callHandlers(enemy)
+            summary = AttackSummary(enemy)
+            summaries.append(summary)
+            for defender in defendUnits:
+                oldDefToughness = defender.toughness
+                oldEneToughness = enemy.toughness
+                defender.toughness, defenderDead = defender.damage(enemy.toughness)
+                enemy.toughness, enemyDead = enemy.damage(oldDefToughness)
+                damage = oldEneToughness - enemy.toughness
+
+                summary.add(defender, damage, defenderDead)
+
+                if defenderDead:
+                    self._deletePiece(defender)
+                if enemyDead:
+                    break # No more attacking
+
+            if not enemyDead:
+                # Any leftover damage goes to the player.
+                summary.add(None, enemy.toughness, False)
+                
+        self.attackReceived.callHandlers(summaries)
         self._reportPieceUpdates()
     
     def dumpPosition(self):

@@ -39,6 +39,7 @@ class BoardLayer(BoardPositionLayer):
         # pairs to be updated at that stage.
         self.animationQueue = []
         self.isAnimating = False
+        self._frozen = False
         
         # Add all the pieces that are currently on the board.
         for p in board.units:
@@ -47,6 +48,16 @@ class BoardLayer(BoardPositionLayer):
         # Set up handlers to catch future changes to the board.
         board.pieceUpdated.addHandler(self._updateNotification)
         board.turnBegun.addHandler(self.refreshPieces)
+
+    def freeze(self):
+        """When the board layer is frozen, it no longer attempts to
+        animate piece updates."""
+
+        self._frozen = True
+
+    def unfreeze(self):
+        self._frozen = False
+        self._nextAnimationStage(0)
 
     def _updateNotification(self, pieces):
         """Called whenever the board is updated."""
@@ -64,6 +75,9 @@ class BoardLayer(BoardPositionLayer):
     # dt is ignored, but it's needed because of the API to
     # pyglet.clock.schedule_once
     def _nextAnimationStage(self, dt):
+        if self._frozen:
+            return
+
         if self.animationQueue:
             pieces = self.animationQueue.pop(0)
             timeout = 0 # time (in s) for this stage to complete
@@ -84,11 +98,14 @@ class BoardLayer(BoardPositionLayer):
         Returns the number of seconds needed for the animation.
         """
 
-        print(str(piece) + str(position))
+        #print(str(piece) + str(position))
 
         if position is None:
-            #logging.debug("Removing piece " + str(piece))
-            self._deletePiece(piece)
+            # If the piece is no longer with us, maybe something else has
+            # gotten rid of it.
+            if piece in self.pieceLayers:
+                #logging.debug("Removing piece " + str(piece))
+                self._deletePiece(piece)
             return 0
         elif piece in self.pieceLayers:
             # If the piece has changed column, slide it in from the top of the board.
@@ -159,7 +176,11 @@ class BoardLayer(BoardPositionLayer):
         pl.x = self.xAt(position[1])
 
     def _deletePiece(self, piece):
-        pl = self.pieceLayers[piece]
+        if piece not in self.pieceLayers:
+            logging.error('Trying to remove a non-existent piece')
+            return
+
+        pl = self.pieceLayers.pop(piece)
         self.remove(pl)
 
     def refreshPieces(self):

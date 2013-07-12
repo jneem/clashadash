@@ -58,6 +58,8 @@ class PieceLayer(cocos.layer.Layer):
     def __init__(self, piece, width, height):
         super(PieceLayer, self).__init__()
         
+        self._width = width
+        self._height = height
         self._piece = piece
         #logging.debug('New piece layer %d x %d, image name %s' % (width, height, piece.imageName()))
 
@@ -102,11 +104,11 @@ class PieceLayer(cocos.layer.Layer):
 
     @property
     def width(self):
-        return self._background.width
+        return self._width
 
     @property
     def height(self):
-        return self._background.height
+        return self._height
 
     def _updateTurnIndicator(self):
         """Displays text indicating how many turns are left before attacking."""
