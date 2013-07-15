@@ -268,22 +268,21 @@ class GameLayer(cocos.layer.Layer):
 
         attack = self._currentAttackQueue.pop(0)
         defender = attack.defender
+
+        # Find the top and bottom y-coordinates of the defender.
+        defenderTop = 0
+        defenderBottom = 0
         if defender is None:
-            # The special value None means that we are attacking the
-            # player.
-            pyglet.clock.schedule_once(self._nextAttack, 0)
-            logging.debug("Attacking player (TODO)")
-            if self._currentAttackQueue:
-                logging.error('The player should always be last in the attack queue')
-            cleanupAttack()
-            return
+            # The special value None means that we are attacking the player.
+            defenderBottom = GAME_HEIGHT
+            defenderTop = 0
+        else:
+            defenderBottom = self.yAt(self.otherBoard, defender.oldRow, defender.height)
+            defenderTop = defenderLayer.y + self.otherBoardLayer.y + defenderLayer.height
 
         # Figure out how far we need to go to collide with the next
         # defender.
-        # NB: Since the pieces have already been moved, we need to use
-        # oldColumn and oldRow everywhere.
         attackerTop = self._currentAttacker.y + self._currentAttacker.height
-        defenderBottom = self.yAt(self.otherBoard, defender.oldRow, defender.height)
         distance = defenderBottom - attackerTop
         # (x, y) is the position of the attacker when it collides with
         # the defender.
@@ -296,7 +295,6 @@ class GameLayer(cocos.layer.Layer):
             defenderLayer = self.otherBoardLayer.pieceLayers[defender]
             # The defender belongs to a BoardLayer, not me, so we need to
             # find its coordinate relative to me. (FIXME: is there a builtin function?)
-            defenderTop = defenderLayer.y + self.otherBoardLayer.y + defenderLayer.height
             distance = attackerBottom - defenderTop
             y = defenderTop
 
