@@ -24,7 +24,7 @@ LEFT_MARGIN = (GAME_WIDTH - BOARD_WIDTH) / 2
 RIGHT_MARGIN = LEFT_MARGIN
 
 # The speed that units move to attack (in seconds per pixel)
-ATTACK_SPEED = 0.01
+ATTACK_SPEED = 0.03
 
 
 class GameLayer(cocos.layer.Layer):
