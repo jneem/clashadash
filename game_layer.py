@@ -24,7 +24,7 @@ LEFT_MARGIN = (GAME_WIDTH - BOARD_WIDTH) / 2
 RIGHT_MARGIN = LEFT_MARGIN
 
 # The speed that units move to attack (in seconds per pixel)
-ATTACK_SPEED = 0.03
+ATTACK_SPEED = 0.003
 
 
 class GameLayer(cocos.layer.Layer):
@@ -277,8 +277,11 @@ class GameLayer(cocos.layer.Layer):
             defenderBottom = GAME_HEIGHT
             defenderTop = 0
         else:
-            defenderBottom = self.yAt(self.otherBoard, defender.oldRow, defender.height)
-            defenderTop = defenderLayer.y + self.otherBoardLayer.y + defenderLayer.height
+            defenderLayer = self.otherBoardLayer.pieceLayers[defender]
+            # The defender belongs to a BoardLayer, not me, so we need to
+            # find its coordinate relative to me. (FIXME: is there a builtin function?)
+            defenderBottom = defenderLayer.y + self.otherBoardLayer.y
+            defenderTop = defenderBottom + defenderLayer.height
 
         # Figure out how far we need to go to collide with the next
         # defender.
@@ -292,9 +295,6 @@ class GameLayer(cocos.layer.Layer):
             # If the attack is going down, we use the top of the defender
             # and the bottom of the attacker
             attackerBottom = self._currentAttacker.y
-            defenderLayer = self.otherBoardLayer.pieceLayers[defender]
-            # The defender belongs to a BoardLayer, not me, so we need to
-            # find its coordinate relative to me. (FIXME: is there a builtin function?)
             distance = attackerBottom - defenderTop
             y = defenderTop
 
