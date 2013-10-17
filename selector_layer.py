@@ -58,7 +58,7 @@ class SelectorLayer(BoardPositionLayer):
     def dropPiece(self):
         self.boardLayer.unhidePiece(self.heldPiece)
         self._heldPiece = None
-        # TODO: visual feedback
+        self.refresh()
 
     # The holder is an icon that moves horizontally along the
     # top of the board to show which column is currently selected.
@@ -86,6 +86,8 @@ class SelectorLayer(BoardPositionLayer):
             self.remove(self._square)
 
         piece = self.board[self.currentRow, self.currentCol]
+        if piece is None:
+            self.currentRow = self.topRow
         # If a piece is being held, position the square at
         # the piece's old position.
         if self.heldPiece is not None:
@@ -135,14 +137,18 @@ class SelectorLayer(BoardPositionLayer):
 
         # Move the indicator to the correct place.
         col = self.currentCol
-        row = self.board.rowToAdd(self.heldPiece, self.currentCol)
-        position = (self.xAt(col), self.yAt(row, self.heldPiece.height))
+        if self.heldPiece is not None:
+            row = self.board.rowToAdd(self.heldPiece, self.currentCol)            
+            position = (self.xAt(col), self.yAt(row, self.heldPiece.height))            
+        else:
+            position = (self.xAt(col), self.yAt(self.topRow))            
         self._moveIndicator.position = position
+            
 
     @property
     def topRow(self):
         """Returns the square on top of the current column"""
-        return self.board.boardHeight[self.currentCol] - 1
+        return max(self.board.boardHeight[self.currentCol] - 1, 0)
 
     def moveHolder(self, direction):
         """Move holder left, right, up or down."""

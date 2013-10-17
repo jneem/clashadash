@@ -78,13 +78,17 @@ class GameManager(object):
         """
         if piece == None:
             return False
+        if piece.position[1] == col: #dropping in the same position
+            return False
         if self.currentBoard.canAddPiece(piece, col):
             self.currentBoard.movePiece(piece, col)
             self._updateMoves()
+            return True
+        else:
+            return False
 
     def deletePiece(self, position):
         """Deletes the piece at the given position.
-
 
         Also recalculates the number of turns that the current
         player has left, and switches players if necessary.

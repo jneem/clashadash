@@ -158,6 +158,8 @@ class GameLayer(cocos.layer.Layer):
                 if self.currentBoard.canAddPiece(piece, col):
                     self.currentSelector.dropPiece()
                     self.gameManager.movePiece(piece, col)
+                else: #move the piece back to where it is
+                    self.currentSelector.dropPiece()
 
         if keyName == "RETURN": # Call pieces.
             self.gameManager.callPieces()
@@ -169,6 +171,7 @@ class GameLayer(cocos.layer.Layer):
             # Delete a piece. Logic check is done by gameManager
             pos = [self.currentSelector.currentRow, self.currentSelector.currentCol]
             self.gameManager.deletePiece(pos)
+            self.currentSelector.refresh()
         if keyName == "END": # End the turn.
             self.gameManager.endTurn()
 
