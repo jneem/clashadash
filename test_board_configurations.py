@@ -21,7 +21,12 @@ class TestBoardConfigurations(unittest.TestCase):
         configs = json.load(open('test_board_configurations.json'))
         for config in configs:
             b = self.buildBoard(config)
-            b.normalize()
+            try: 
+                b.normalize()
+            except Exception: 
+                self.fail('test failed. Comment %s' %
+                          config['comment'])
+                
             errors = self.checkBoardMatches(b, config['endConfig'])
 
             if len(errors) > 0:
@@ -67,7 +72,9 @@ class TestBoardConfigurations(unittest.TestCase):
 
         if not board.selfConsistent():
             errors.append('the board entered an inconsistent state')
-
+        
+        if len(errors) > 0:
+            board.dumpPosition()
         return errors
 
     def checkPieceMatches(self, piece, pieceDesc):
@@ -115,4 +122,5 @@ class TestBoardConfigurations(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+    
 

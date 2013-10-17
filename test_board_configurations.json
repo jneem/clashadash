@@ -124,11 +124,67 @@
         ,{ "position": [1, 2], "size": [3, 1] }
         ,{ "position": [4, 2], "size": [1, 1], "name": "Swordsman" }
     ]
+},
+{
+    "comment": "Fatty get charged and put in front"
+    ,"dimensions":[6,6]
+    ,"startConfig": [
+        { "position": [0, 0] }
+        ,{ "position": [1, 0] }
+        ,{ "position":[2,0], "size": [2,2], "name": "Angel"}
+        ,{ "position": [4, 0] }
+        ,{ "position": [4, 1] }
+        ,{ "position": [5, 0] }
+        ,{ "position": [5, 1] }
+    ]
+    ,"endConfig": [
+        { "position": [0, 0], "size": [2,2], "name": "Angel Charged" }
+        ,{ "position": [2, 0] }
+        ,{ "position":[3,0]}
+    ]
 }
-,
+
+,{
+    "comment": "Fatty alignment challenge: None error"
+    ,"dimensions":[6,6]
+    ,"startConfig": [
+        { "position": [0, 0] }
+        ,{ "position": [1, 0] }
+        ,{ "position":[2,0], "size": [2,2], "name": "Angel"}
+        ,{ "position": [4, 0] }
+        ,{ "position": [4, 1] }
+        ,{ "position": [5, 1] }
+        ,{ "position": [2,2], "size": [2,2], "name": "Angel"}        
+        ,{ "position": [4,2], "size": [2,2], "name": "Angel"}
+        ,{ "position": [0,3]}
+        ,{ "position": [1,3]}        
+        ,{ "position": [0,4]}        
+        ,{ "position": [1,4]}
+        ,{ "position": [2,4]}
+        ,{ "position": [3,4], "size": [2,2], "name": "Angel"}
+        ,{ "position": [5,4]}        
+        ,{ "position": [5,5]}        
+    ]
+    ,"endConfig": [
+        { "position": [0, 0] }
+        ,{ "position": [1, 0] }
+        ,{ "position":[2,0], "size": [2,2], "name": "Angel"}
+        ,{ "position": [4, 0] }
+        ,{ "position": [4, 1] }
+        ,{ "position": [5, 1] }
+        ,{ "position": [2,2], "size": [2,2], "name": "Angel"}        
+        ,{ "position": [4,2], "size": [2,2], "name": "Angel"}
+        ,{ "position": [0,3], "size": [1, 1]}
+        ,{ "position": [1,3]}        
+        ,{ "position": [0,4], "size": [3,1]}        
+        ,{ "position": [3,4], "size": [2,2], "name": "Angel"}
+        ,{ "position": [5,4]}        
+        ,{ "position": [5,5]}        
+    ]
+},
 {
     "comment": "Fatty with a skinny underneath, right corner. Collison test."
-    ,"dimensions":[5,5]
+    ,"dimensions":[3,2]
     ,"startConfig": [
         { "position":[1,0], "size": [2,2], "name": "Angel"}
         ,{ "position": [0,1]}
@@ -136,19 +192,6 @@
     ,"endConfig": [
         { "position":[1,0], "size": [2,2], "name": "Angel"}
         ,{ "position": [0,1]}
-    ]
-}
-,
-{
-    "comment": "Fatty with a skinny underneath, left corner. Collison test."
-    ,"dimensions":[5,5]
-    ,"startConfig": [
-        { "position":[1,0], "size": [2,2], "name": "Angel"}
-        ,{ "position": [0,0]}
-    ]
-    ,"endConfig": [
-        { "position":[1,0], "size": [2,2], "name": "Angel"}
-        ,{ "position": [0,0]}
     ]
 }
 ]

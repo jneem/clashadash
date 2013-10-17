@@ -225,6 +225,8 @@ class GameManager(object):
         """Current player wants to call some pieces.
 
         Generate units one at a time, and check that they can be fit on board.
+        
+        Debugging mode: store the configuration of the board after generated.
         """
 
         pieceLeft = self.currentPlayer.maxUnitTotal - len(self.currentBoard.units)
@@ -234,9 +236,18 @@ class GameManager(object):
             unit = self.currentPlayer.getRandomUnit()
             col = self.currentBoard.colToAdd(unit)
             if col is not None:
-                logging.debug('Trying to add a unit of size %s to column %d' %(unit.size, col))                
+                logging.debug('Attempting to add unit size %s to column %d' %(unit.size, col))                
                 self.currentBoard.addPiece(unit, col)
                 pieceLeft = pieceLeft - 1
+            else: #board is full already
+                #TODO: we should avoid full board positions
+                #TODO: technically, we need to try other color combinations to be sure
+                if unit.size == (1,1):
+                    logging.debug('Board is full while there are %d pieces left to call' % pieceLeft)
+                    break
+                else:
+                    logging.debug('No valid columns for a unit of size %s' % str(unit.size))
+                    logging.debug('Number of pieces left is %d' % pieceLeft)
 
         # Assuming colToAdd works correctly, normalizing the board
         # should not actually change anything.  However, we need to call

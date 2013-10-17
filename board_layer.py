@@ -55,7 +55,7 @@ class BoardLayer(BoardPositionLayer):
         # by the time we get around to animating the motion.
         copyPos = lambda pos: None if pos is None else tuple(pos)
         piecePositions = [(p, copyPos(p.position)) for p in pieces]
-        logging.debug("Board_layer updating pieces " + str(piecePositions))
+        #logging.debug("Board_layer updating pieces " + str(piecePositions))
         self.animationQueue.append(set(piecePositions))
         if not self.isAnimating:
             self.isAnimating = True
@@ -87,7 +87,7 @@ class BoardLayer(BoardPositionLayer):
         print(str(piece) + str(position))
 
         if position is None:
-            logging.debug("Removing piece " + str(piece))
+            #logging.debug("Removing piece " + str(piece))
             self._deletePiece(piece)
             return 0
         elif piece in self.pieceLayers:
@@ -136,7 +136,7 @@ class BoardLayer(BoardPositionLayer):
 
     def _appearPiece(self, piece, position):
 
-        logging.debug("Appearing piece %s at (%d,%d)" % (str(piece), position[0], position[1]))
+        #logging.debug("Appearing piece %s at (%d,%d)" % (str(piece), position[0], position[1]))
         pieceLayer = self._addPieceLayer(piece)
         pieceLayer.y = self.yAt(position[0], piece.size[0])
         pieceLayer.x = self.xAt(position[1])
@@ -144,7 +144,7 @@ class BoardLayer(BoardPositionLayer):
     def _movePiece(self, piece, position):
         """Slide a piece from its current position to a new one."""
 
-        logging.debug("Moving piece %s to (%d,%d)" % (str(piece), position[0], position[1]))
+        #logging.debug("Moving piece %s to (%d,%d)" % (str(piece), position[0], position[1]))
         pl = self.pieceLayers[piece]
         y = self.yAt(position[0], piece.size[0])
         x = self.xAt(position[1])
@@ -153,7 +153,7 @@ class BoardLayer(BoardPositionLayer):
     def _warpPiece(self, piece, position):
         """Move a piece instantaneously to a new position."""
 
-        logging.debug("Warping piece %s to (%d,%d)" % (str(piece), position[0], position[1]))
+        #logging.debug("Warping piece %s to (%d,%d)" % (str(piece), position[0], position[1]))
         pl = self.pieceLayers[piece]
         pl.y = self.yAt(position[0], piece.size[0])
         pl.x = self.xAt(position[1])

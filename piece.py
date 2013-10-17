@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import logging
+#import logging
 
 class Piece(object):
     """A piece is something that lives on the board.
@@ -33,7 +33,7 @@ class Piece(object):
                         its charged form have the same size. 
         """
 
-        logging.debug('Creating a piece ' + str(description))
+        #logging.debug('Creating a piece ' + str(description))
 
         self.description = description
         self.name = description.get('name', '')

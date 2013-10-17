@@ -8,6 +8,7 @@
         <slidePriority>0</slidePriority>
         <imageBase>sword</imageBase>
         <charge>
+            <name>Swordsman Charged</name>
             <maxPower>11</maxPower>
             <initialPower>5</initialPower>
             <height>3</height>
@@ -26,6 +27,7 @@
         <slidePriority>0</slidePriority>
         <imageBase>angel</imageBase>
         <charge>
+            <name>Angel Charged</name>
             <maxPower>115</maxPower>
             <initialPower>40</initialPower>
             <height>2</height>
