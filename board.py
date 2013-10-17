@@ -111,6 +111,7 @@ class Board:
             raise IndexError("Index larger than board size")
         self.grid[i,j] = unit
 
+    @property
     def boardHeight(self):
         """Returns the first empty row in each column.
 
@@ -179,9 +180,8 @@ class Board:
         """
         #cycle through units by column over (j), then over row (i)
         updated = False
-        boardHeight = self.boardHeight()
         for j in range(self.grid.shape[1]):
-            for i in range(boardHeight[j]):
+            for i in range(self.boardHeight[j]):
                 unit = self[i,j]
                 if unit is not None:
                     unitTop = self[i+unit.size[0],j]
@@ -406,8 +406,7 @@ class Board:
             self._deleteFromGrid(piece)
 
         fat = piece.size[1]
-        vacantRows = self.boardHeight()
-        row = int(max(vacantRows[range(col, col+fat)]))
+        row = int(max(self.boardHeight[range(col, min(col+fat,self.width))]))       
 
         if deleted:
             self._addToGrid(piece)

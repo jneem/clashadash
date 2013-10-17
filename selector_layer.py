@@ -125,7 +125,7 @@ class SelectorLayer(BoardPositionLayer):
             if self._moveIndicator is not None:
                 self.remove(self._moveIndicator)
                 self._moveIndicator = None
-            return
+            return None
 
         # Create an indicator if we need one.
         if self._moveIndicator is None:
@@ -139,6 +139,11 @@ class SelectorLayer(BoardPositionLayer):
         position = (self.xAt(col), self.yAt(row, self.heldPiece.height))
         self._moveIndicator.position = position
 
+    @property
+    def topRow(self):
+        """Returns the square on top of the current column"""
+        return self.board.boardHeight[self.currentCol] - 1
+
     def moveHolder(self, direction):
         """Move holder left, right, up or down."""
 
@@ -151,14 +156,16 @@ class SelectorLayer(BoardPositionLayer):
         if direction == "left":
             if self.currentCol > 0:
                 self.currentCol -= 1
+                self.currentRow = self.topRow
         elif direction == "right":
             if self.currentCol < self.board.width - 1:
                 self.currentCol += 1
+                self.currentRow = self.topRow                
         elif direction == "down":
             if self.currentRow > 0:
                 self.currentRow -= 1
         elif direction == "up":
-            if self.currentRow < self.board.height - 1:
+            if self.currentRow < self.topRow:
                 self.currentRow += 1
 
         self.refresh()
@@ -171,24 +178,24 @@ class SelectorLayer(BoardPositionLayer):
         self._updateMoveIndicator()
 
     def pickUp(self):
-        """Pick up a piece, if there is one at the current location AND
-        piece is at the top of the column
+        """Pick up a piece. 
+        
+        Pick up a piece only if it is at the top of the column
+        AND that the piece is moveable.
         """
-
-        colHeight = self.board.boardHeight()[self.currentCol]
-        if self.currentRow == colHeight - 1:
-            piece = self.board[self.currentRow, self.currentCol]
-            if piece is None:
-                logging.debug('not picking up piece at (%d, %d) because that square is empty'
-                        % (self.currentRow, self.currentCol))
-            else:
-                logging.debug('picking up piece %s at (%d, %d)'
-                        % (piece, self.currentRow, self.currentCol))
-                self._heldPiece = piece
-                self.boardLayer.hidePiece(piece)
-                self.refresh()
-            # TODO: animate. Have mask over current position.
-        else:
-            logging.debug('not picking up piece at (%d, %d) because column height is %d'
-                    % (self.currentRow, self.currentCol, colHeight))
+        piece = self.board[self.topRow, self.currentCol]
+        if piece is None:
+            logging.debug('not picking up piece at (%d, %d) because that square is empty'
+                    % (self.currentRow, self.currentCol))
+            return None
+        if not piece.moveable:
+            logging.debug('not picking up piece at (%d, %d) because that piece is immoveable'
+            % (self.currentRow, self.currentCol))
+            return None
+        
+        logging.debug('picking up piece %s at (%d, %d)'
+                % (piece, self.currentRow, self.currentCol))
+        self._heldPiece = piece
+        self.boardLayer.hidePiece(piece)
+        self.refresh()
 

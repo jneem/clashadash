@@ -63,6 +63,7 @@ class Player(object):
         self._life = self.maxLife
         self._usedMoves = 0
         self._calledUnit = 0
+        self._calledFatties = 0
         # After losing special units, there is a temporary penalty to
         # its weight; effWeights keeps track of the possibly penalized value.
         self.effWeights = self.specialWeights.copy() #effective unit weights
@@ -144,13 +145,17 @@ class Player(object):
         unit = self.unitFactory.create(unitName, self.randomColor(), player = self)
         return unit
 
-    def getRandomUnit(self):
+    def getRandomUnit(self, enemyFatties):
         """ Return a random unit
         
-            Probability of being special is 0.2*innerproduct(effWeights, specialRarity)/100
+            Probability of being special is 
+            0.1*innerproduct(effWeights, specialRarity)/100*
+            max((enemyFatties+1)/(self._calledFatties+1), 1)
+            
         """
         specialOdds = self.specialRarity * self.effWeights
-        if np.random.uniform() < 0.2*specialOdds/100:
+        fattyBoost = max((1. + enemyFatties)/(1 + self._calledFatties), 1.)
+        if np.random.uniform() < 0.1*specialOdds/100*fattyBoost:
             unit = self.getSpecialUnit()
         else:
             unit = self.getBaseUnit()

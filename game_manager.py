@@ -226,6 +226,9 @@ class GameManager(object):
 
         Generate units one at a time, and check that they can be fit on board.
         
+        Chance of getting fatties is coupled with the opponent's number of 
+        fatties ever generated
+        
         Debugging mode: store the configuration of the board after generated.
         """
 
@@ -233,12 +236,14 @@ class GameManager(object):
         logging.debug('Calling %d pieces for player %s' % (pieceLeft, str(self.currentPlayer)))
         addedPieces = pieceLeft > 0
         while pieceLeft > 0:
-            unit = self.currentPlayer.getRandomUnit()
+            unit = self.currentPlayer.getRandomUnit(self.otherPlayer._calledFatties)
             col = self.currentBoard.colToAdd(unit)
             if col is not None:
                 logging.debug('Attempting to add unit size %s to column %d' %(unit.size, col))                
                 self.currentBoard.addPiece(unit, col)
                 pieceLeft = pieceLeft - 1
+                if(unit.size == (2,2)):
+                    self.currentPlayer._calledFatties += 1
             else: #board is full already
                 #TODO: we should avoid full board positions
                 #TODO: technically, we need to try other color combinations to be sure
