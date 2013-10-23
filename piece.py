@@ -138,7 +138,7 @@ class Piece(object):
         says how much strength the current piece still has left, while dead is
         true if this piece died and should be removed.
         """
-	return (self.toughness - attackStrength, self.toughness <= attackStrength)
+        return (self.toughness - attackStrength, self.toughness <= attackStrength)
 
     def charge(self):
         """

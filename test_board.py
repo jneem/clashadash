@@ -33,14 +33,14 @@ class DummyPiece(Piece):
             return (0, 0)
     
     def canTransform(self, other):
-	return (self.size == (1,1) and other.size == (1,1))
+        return (self.size == (1,1) and other.size == (1,1))
     
     def canCharge(self, other):
         return self.chargeable
 
     def charge(self):
         if self.size == (1, 1):
-	    dumb = DummyPiece(3, 1, position=self.position)
+            dumb = DummyPiece(3, 1, position=self.position)
             dumb.slidePriority = 1
         if self.size == (2, 1):
             dumb = DummyPiece(2, 1, position=self.position)
@@ -48,7 +48,7 @@ class DummyPiece(Piece):
         if self.size == (2, 2):
             dumb = DummyPiece(2, 2, position=self.position)
             dumb.slidePriority = 3
-	return dumb
+        return dumb
 
     def transform(self):
         ret = DummyPiece(self.size[0], self.size[1], position = self.position, transformable=False)
@@ -101,12 +101,12 @@ class TestBoard(unittest.TestCase):
     #-- addPiece onto a full column
     #@unittest.skip("")
     def testAddPiece(self):
-	b = Board(2, 3)
+        b = Board(2, 3)
         b.addPiece(DummyPiece(1,1), 1)
         b.addPiece(DummyPiece(1,1), 1)
         
         with self.assertRaises(IndexError):
-	    b.addPiece(DummyPiece(1,1), 1)
+            b.addPiece(DummyPiece(1,1), 1)
 
     #@unittest.skip("")
     def testSlideFatty(self):

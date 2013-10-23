@@ -37,11 +37,11 @@ class Unit(Piece):
             return (0, 0)
 
     def damage(self, attackStrength):
-	"""
-        Damages this unit by a given amount.
-	Uncharged unit always die regardless of the damage amount.
         """
-	return (self.toughness - attackStrength, True)
+        Damages this unit by a given amount.
+        Uncharged unit always die regardless of the damage amount.
+        """
+        return (self.toughness - attackStrength, True)
 
     def transform(self):
         return Wall(self.player.wallDescription, self.position)

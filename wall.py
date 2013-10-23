@@ -11,8 +11,8 @@ class Wall(Piece):
         # FIXME: should there be a player?
         super(Wall, self).__init__(desc)
 
-	self.image = desc['image']
-	self.toughness = int(desc['toughness'])
+        self.image = desc['image']
+        self.toughness = int(desc['toughness'])
         self.maxToughness = int(desc['maxToughness'])
         self.position = position
         
