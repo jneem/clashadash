@@ -15,11 +15,11 @@ unitFac = UnitFactory('unit_descriptions.xml')
 playerFac = PlayerFactory('player_descriptions.xml')
 
 player1 = playerFac.create('Camel',
-        unitFac, baseWeights=[3,3], baseNames=['Archer', 'Swordsman'],
+        unitFac, baseWeights=[1,1,1], baseNames=['Archer', 'Swordsman','Swordsman'],
         specialWeights=[10], specialNames=['Angel'], specialRarity=[3])
         
 player2 = playerFac.create('Camel',
-        unitFac, baseWeights=[3], baseNames=['Swordsman'],
+        unitFac, baseWeights=[2,1,1], baseNames=['Archer', 'Swordsman', 'Archer'],
         specialWeights=[10], specialNames=['Angel'], specialRarity=[3])
 
 board1 = Board(6, 8)

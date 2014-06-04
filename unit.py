@@ -22,15 +22,13 @@ class Unit(Piece):
         return (2, self.size[1])
 
     def canCharge(self, other):
-        return self.color == other.color and other.size == (1, 1) and other.imageBase == self.imageBase
+        return self.color == other.color and other.size == (1, 1)
 
     def canTransform(self, other):
         return (hasattr(other, 'color') and
-                hasattr(other, 'imageBase') and        
                 self.color == other.color and
                 self.size == (1, 1) and
-                other.size == (1, 1) and
-                other.imageBase == self.imageBase)
+                other.size == (1, 1))
 
     def transformingRegion(self):
         if self.size == (1, 1):

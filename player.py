@@ -20,6 +20,8 @@ class Player(object):
                  specialWeights=[], specialNames=[], specialRarity=[]):
         """
         Parameters:
+        baseWeights: 3 non-negative numbers sum to 3
+        baseNames: 3 names of base units, possibly with repeats. 
             manaFactor: dict. Whenever a player does a mana-generating action (eg: link), 
 		the amount of mana they get for it will be multiplied 
 		by the number specified
@@ -49,6 +51,7 @@ class Player(object):
         #weight distribution of base units. Integers, sum to 3
         self.baseWeights = np.array(baseWeights)
         self.baseNames = baseNames
+        self.baseColor = ['red', 'white', 'blue']
 
         #weight distribution of special unit type. Integers, sum to 10
         self.specialWeights = np.array(specialWeights)
@@ -125,24 +128,24 @@ class Player(object):
 
     def getSpecialUnit(self):
         """ Return a special unit. Relative probability of specific types is
-            innerproduct(effweight, specialRarity)
+            innerproduct(effweight, specialRarity). The color is chosen
+            proportionally to baseWeight
         """
         effOdds = self.specialRarity * self.effWeights
         weights = [np.random.uniform()*x for x in effOdds]
         unitName = self.specialNames[np.argmax(weights)]
-        unit = self.unitFactory.create(unitName, self.randomColor(), player=self)
+        colorweights = [np.random.uniform()*x for x in self.baseWeights]
+        unit = self.unitFactory.create(unitName, self.baseColor[np.argmax(colorweights)], player=self)
         return unit
-
-    def randomColor(self):
-        return random.choice(['red', 'white', 'blue'])
 
     def getBaseUnit(self):
         """ Return a base unit. Relative probability of specific types is
         baseWeights
         """
         weights = [np.random.uniform()*x for x in self.baseWeights]
-        unitName = self.baseNames[np.argmax(weights)]
-        unit = self.unitFactory.create(unitName, self.randomColor(), player = self)
+        i = np.argmax(weights)
+        unitName = self.baseNames[i]
+        unit = self.unitFactory.create(unitName, self.baseColor[i], player = self)
         return unit
 
     def getRandomUnit(self, enemyFatties):
