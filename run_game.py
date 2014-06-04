@@ -15,7 +15,7 @@ unitFac = UnitFactory('unit_descriptions.xml')
 playerFac = PlayerFactory('player_descriptions.xml')
 
 player1 = playerFac.create('Camel',
-        unitFac, baseWeights=[3], baseNames=['Swordsman'],
+        unitFac, baseWeights=[3,3], baseNames=['Archer', 'Swordsman'],
         specialWeights=[10], specialNames=['Angel'], specialRarity=[3])
         
 player2 = playerFac.create('Camel',

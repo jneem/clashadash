@@ -6,7 +6,7 @@
         <width>1</width>
         <moveable>True</moveable>
         <slidePriority>0</slidePriority>
-        <imageBase>sword</imageBase>
+        <imageBase>images/human/swordsman</imageBase>
         <charge>
             <name>Swordsman Charged</name>
             <maxPower>11</maxPower>
@@ -15,7 +15,7 @@
             <width>1</width>
             <turns>3</turns>
             <slidePriority>1</slidePriority>
-            <imageBase>swordCharging</imageBase>
+            <imageBase>images/human/swordCharging</imageBase>
         </charge>
     </unit>
     <unit>
@@ -25,7 +25,7 @@
         <width>2</width>
         <moveable>True</moveable>
         <slidePriority>0</slidePriority>
-        <imageBase>angel</imageBase>
+        <imageBase>images/human/angel</imageBase>
         <charge>
             <name>Angel Charged</name>
             <maxPower>115</maxPower>
@@ -34,7 +34,26 @@
             <width>2</width>
             <turns>6</turns>
             <slidePriority>1</slidePriority>
-            <imageBase>angel</imageBase>
+            <imageBase>images/human/angel</imageBase>
+        </charge>
+    </unit>
+    <unit>
+        <name>Archer</name>
+        <toughness>3</toughness>
+        <height>1</height>
+        <width>1</width>
+        <moveable>True</moveable>
+        <slidePriority>0</slidePriority>
+        <imageBase>images/human/archer</imageBase>
+        <charge>
+            <name>Archer Charged</name>
+            <maxPower>9</maxPower>
+            <initialPower>3</initialPower>
+            <height>3</height>
+            <width>1</width>
+            <turns>2</turns>
+            <slidePriority>1</slidePriority>
+            <imageBase>images/human/archerCharging</imageBase>
         </charge>
     </unit>
 </unitDescriptions>

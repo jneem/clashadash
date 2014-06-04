@@ -216,7 +216,7 @@ class GameManager(object):
     def _playerIsHit(self, enemy):
 	""" Player is hit by unit enemy. Note that currentPlayer is doing the attacking. 
 	"""
-	self.otherPlayer.life = self.otherPlayer.life - enemy.toughness    
+	self.otherPlayer.life -= enemy.toughness    
 
     #TODO
     def _playerJustDied(self): 
@@ -239,25 +239,21 @@ class GameManager(object):
         pieceLeft = self.currentPlayer.maxUnitTotal - len(self.currentBoard.units)
         logging.debug('Calling %d pieces for player %s' % (pieceLeft, str(self.currentPlayer)))
         addedPieces = pieceLeft > 0
+        retries = 10
         while pieceLeft > 0:
             unit = self.currentPlayer.getRandomUnit(self.otherPlayer._calledFatties)
             col = self.currentBoard.colToAdd(unit)
             if col is None:
                 logging.warning('A piece with dimensions %d x %d did not fit on the board' % (unit.size[0], unit.size[1]))
+                retries -= 1
+                if(retries == 0):
+                    logging.debug('Board is full while there are %d pieces left to call' % pieceLeft)
+                    break
             else:
                 self.currentBoard.addPiece(unit, col)
                 pieceLeft = pieceLeft - 1
                 if(unit.size == (2,2)):
                     self.currentPlayer._calledFatties += 1
-            else: #board is full already
-                #TODO: we should avoid full board positions
-                #TODO: technically, we need to try other color combinations to be sure
-                if unit.size == (1,1):
-                    logging.debug('Board is full while there are %d pieces left to call' % pieceLeft)
-                    break
-                else:
-                    logging.debug('No valid columns for a unit of size %s' % str(unit.size))
-                    logging.debug('Number of pieces left is %d' % pieceLeft)
 
         # Assuming colToAdd works correctly, normalizing the board
         # should not actually change anything.  However, we need to call
