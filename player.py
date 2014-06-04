@@ -108,6 +108,9 @@ class Player(object):
     def life(self, l):
         delta = l - self._life
         self._life = l
+
+        logging.debug('updated life to %d' % self._life)
+
         self.lifeChanged.callHandlers(l)
         if delta < 0: #loss of life contributes towards increase in mana
             self.mana = self.mana - delta

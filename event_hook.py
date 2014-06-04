@@ -15,4 +15,4 @@ class EventHook(object):
         
     def callHandlers(self, *args, **kwargs):
         for h in self._handlers:
-            h(*args, **kwargs)            
+            h(*args, **kwargs)

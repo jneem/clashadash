@@ -26,6 +26,8 @@ RIGHT_MARGIN = LEFT_MARGIN
 # The speed that units move to attack (in seconds per pixel)
 ATTACK_SPEED = 0.003
 
+class PlayerLayers:
+    pass
 
 class GameLayer(cocos.layer.Layer):
     """Creates a displayable object containing the two board layers,
@@ -62,14 +64,16 @@ class GameLayer(cocos.layer.Layer):
         self.topSelector.position = tuple(self.topBoard.position)
 
         # Make the bottom player active initially.
+        self.current = PlayerLayers()
+        self.other = PlayerLayers()
         self.bottomSelector.toggleActive()
-        self.currentSelector = self.bottomSelector
-        self.otherSelector = self.topSelector
-        self.currentBoardLayer = self.bottomBoard
-        self.otherBoardLayer = self.topBoard
+        self.current.selector = self.bottomSelector
+        self.other.selector = self.topSelector
+        self.current.boardLayer = self.bottomBoard
+        self.other.boardLayer = self.topBoard
 
-        self._addPlayerInfo(bottomPlayer, True)
-        self._addPlayerInfo(topPlayer, False)
+        self._addPlayerInfo(bottomPlayer, self.current, True)
+        self._addPlayerInfo(topPlayer, self.other, False)
 
         # Initialize event handlers.
         self.gameManager.switchTurn.addHandler(self.switchPlayer)
@@ -83,7 +87,7 @@ class GameLayer(cocos.layer.Layer):
         topBoard.attackReceived.addHandler(self.animateAttack)
         bottomBoard.attackReceived.addHandler(self.animateAttack)
 
-    def _addPlayerInfo(self, player, isBottomPlayer):
+    def _addPlayerInfo(self, player, playerLayers, isBottomPlayer):
         """Add the player display (life, mana, etc.) layers to the game.
         """
 
@@ -93,7 +97,9 @@ class GameLayer(cocos.layer.Layer):
                                (0, 255, 0, 255))     # full life color
         lifeMeter.value = player.life
         self.add(lifeMeter)
-        player.lifeChanged.addHandler(lambda x: lifeMeter.setValue(x))
+        # Don't tie the life meter directly to the display, because for animating
+        # attacks we prefer to update the life to sync up with the attack.
+        #player.lifeChanged.addHandler(lambda x: lifeMeter.setValue(x))
 
         manaMeter = MeterLayer(192, 16, player.maxMana,
                                (255, 255, 255, 127), # background color
@@ -120,26 +126,28 @@ class GameLayer(cocos.layer.Layer):
         movesTextBox.position = (32, boardY + 80)
         unitsTextBox.position = (32, boardY + 50)
 
+        playerLayers.lifeMeter = lifeMeter
+        playerLayers.manaMeter = manaMeter
+        playerLayers.movesCounter = movesTextBox
+        playerLayers.unitsCounter = unitsTextBox
+
     @property
     def currentBoard(self):
-        return self.currentSelector.board
+        return self.current.selector.board
 
     @property
     def otherBoard(self):
-        return self.otherSelector.board
+        return self.other.selector.board
 
     def switchPlayer(self):
         """Changes the active player.
         
         Keypresses only affect the active player."""
 
-        tmp = self.currentSelector
-        self.currentSelector = self.otherSelector
-        self.otherSelector = tmp
-
-        tmp = self.currentBoardLayer
-        self.currentBoardLayer = self.otherBoardLayer
-        self.otherBoardLayer = tmp
+        
+        tmp = self.current
+        self.current = self.other
+        self.other = tmp
 
         self.topSelector.toggleActive()
         self.bottomSelector.toggleActive()
@@ -150,13 +158,13 @@ class GameLayer(cocos.layer.Layer):
         # TODO: do key repetition when a key is held down.
         keyName = pyglet.window.key.symbol_string(key)
         if keyName == "LEFT":
-            self.currentSelector.moveHolder("left")
+            self.current.selector.moveHolder("left")
         if keyName == "RIGHT":
-            self.currentSelector.moveHolder("right")
+            self.current.selector.moveHolder("right")
         if keyName == "UP":
-            self.currentSelector.moveHolder("down")
+            self.current.selector.moveHolder("down")
         if keyName == "DOWN":
-            self.currentSelector.moveHolder("up")
+            self.current.selector.moveHolder("up")
 
     def on_key_release(self, key, modifiers):
         """Handles non-repeatable actions.
@@ -169,16 +177,16 @@ class GameLayer(cocos.layer.Layer):
         keyName = pyglet.window.key.symbol_string(key)
         logging.debug('key "%s" released' % keyName)
         if keyName == "SPACE": # Pick up or drop the selected piece.
-            if self.currentSelector.heldPiece is None:
-                self.currentSelector.pickUp()
+            if self.current.selector.heldPiece is None:
+                self.current.selector.pickUp()
             else:
-                piece = self.currentSelector.heldPiece
-                col = self.currentSelector.currentCol
+                piece = self.current.selector.heldPiece
+                col = self.current.selector.currentCol
                 if self.currentBoard.canAddPiece(piece, col):
-                    self.currentSelector.dropPiece()
+                    self.current.selector.dropPiece()
                     self.gameManager.movePiece(piece, col)
                 else: #move the piece back to where it is
-                    self.currentSelector.dropPiece()
+                    self.current.selector.dropPiece()
 
         if keyName == "RETURN": # Call pieces.
             self.gameManager.callPieces()
@@ -188,9 +196,9 @@ class GameLayer(cocos.layer.Layer):
                 pass
         if keyName == "BACKSPACE": 
             # Delete a piece. Logic check is done by gameManager
-            pos = [self.currentSelector.currentRow, self.currentSelector.currentCol]
+            pos = [self.current.selector.currentRow, self.current.selector.currentCol]
             self.gameManager.deletePiece(pos)
-            self.currentSelector.refresh()
+            self.current.selector.refresh()
         if keyName == "END": # End the turn.
             self.gameManager.endTurn()
 
@@ -233,7 +241,7 @@ class GameLayer(cocos.layer.Layer):
             return
 
         attack = self.attackQueue.pop(0)
-        attackBoardLayer = self.currentBoardLayer
+        attackBoardLayer = self.current.boardLayer
         attackBoard = self.currentBoard
 
         # The attacking unit gets removed from its board layer and added
@@ -277,10 +285,10 @@ class GameLayer(cocos.layer.Layer):
             defenderBottom = GAME_HEIGHT
             defenderTop = 0
         else:
-            defenderLayer = self.otherBoardLayer.pieceLayers[defender]
+            defenderLayer = self.other.boardLayer.pieceLayers[defender]
             # The defender belongs to a BoardLayer, not me, so we need to
             # find its coordinate relative to me. (FIXME: is there a builtin function?)
-            defenderBottom = defenderLayer.y + self.otherBoardLayer.y
+            defenderBottom = defenderLayer.y + self.other.boardLayer.y
             defenderTop = defenderBottom + defenderLayer.height
 
         # Figure out how far we need to go to collide with the next
@@ -291,7 +299,7 @@ class GameLayer(cocos.layer.Layer):
         # the defender.
         x = self._currentAttacker.x
         y = defenderBottom - self._currentAttacker.height
-        if self.currentBoardLayer == self.topBoard:
+        if self.current.boardLayer == self.topBoard:
             # If the attack is going down, we use the top of the defender
             # and the bottom of the attacker
             attackerBottom = self._currentAttacker.y
@@ -307,6 +315,11 @@ class GameLayer(cocos.layer.Layer):
     def _doAttack(self, dt, attack):
         # This is called when the attacker has just touched the defender.
         if attack.defenderDead:
-            self.otherBoardLayer._deletePiece(attack.defender)
+            self.other.boardLayer._deletePiece(attack.defender)
+
+        if attack.defender is None:
+            # Got through to the player.
+            self.other.lifeMeter.value -= attack.damageDealt
+
         self._continueAttack(0)
 

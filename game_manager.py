@@ -41,16 +41,19 @@ class GameManager(object):
         board2.attackMade.addHandler(self._attackMade)
         board1.fusionMade.addHandler(self._fusionMade)
         board2.fusionMade.addHandler(self._fusionMade)
-        board1.playerIsHit.addHandler(self._playerIsHit)
-        board2.playerIsHit.addHandler(self._playerIsHit)
         player1.justDied.addHandler(self._playerJustDied)
         player2.justDied.addHandler(self._playerJustDied)
-	
-        #the two boards handle each other damage
+        
+        # When board1 decides it's time to attack, it will call
+        # damageCalculate on board2. Then board2's attackReceived event
+        # will trigger with the details of the attack; we listen to it
+        # to see if the player took damage.
         board1.attackNow.addHandler(board2.damageCalculate)
+        board2.attackReceived.addHandler(self._attackReceived)
+
+        # And the same for the other board.
         board2.attackNow.addHandler(board1.damageCalculate)
-        
-        
+        board1.attackReceived.addHandler(self._attackReceived)
 
     @property
     def currentPlayer(self):
@@ -62,11 +65,11 @@ class GameManager(object):
     
     @property
     def otherPlayer(self):
-	return self._otherPlayerBoard[0]
+        return self._otherPlayerBoard[0]
     
     @property
     def otherBoard(self):
-	return self._otherPlayerBoard[1]
+        return self._otherPlayerBoard[1]
     
     def movePiece(self, piece, col):
         """Puts piece to column col.
@@ -76,7 +79,7 @@ class GameManager(object):
         Returns True if the move succeeded, and False if it was
         an illegal move.
         """
-        if piece == None:
+        if piece is None:
             return False
         if piece.position[1] == col: #dropping in the same position
             return False
@@ -156,7 +159,7 @@ class GameManager(object):
             except KeyError:
                 logging.error('player description missing manaFactor ' + evt)
 
-            logging.debug('increment is %s' % factor * num)
+            logging.debug('increment is %s' % (factor * num))
             self.currentPlayer.mana += factor * num
             logging.debug('new mana is %s' % self.currentPlayer.mana)
             
@@ -213,17 +216,27 @@ class GameManager(object):
         if self.currentPlayer.usedMoves == self.currentPlayer.maxMoves:
             self.endTurn()
     
-    def _playerIsHit(self, enemy):
-	""" Player is hit by unit enemy. Note that currentPlayer is doing the attacking. 
-	"""
-	self.otherPlayer.life -= enemy.toughness    
+    def _attackReceived(self, summaries):
+        """Someone was just attacked (but not necessarily damaged).
+
+        Check if the attack got through.
+        """
+
+        for summary in summaries:
+            if summary.attacks:
+                attack = summary.attacks[-1]
+                logging.debug(attack.defender)
+
+                # None is the sentinal value meaning the attack got through to the player.
+                if attack.defender is None:
+                    self.otherPlayer.life -= attack.damageDealt
 
     #TODO
     def _playerJustDied(self): 
-	""" Player just died event handler."""
-	logging.debug("Player %s just died" % self.otherPlayer.name)
-	pass
-	
+        """Player just died event handler."""
+        logging.debug("Player %s just died" % self.otherPlayer.name)
+        pass
+        
     
     def callPieces(self):
         """Current player wants to call some pieces.

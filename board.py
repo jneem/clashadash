@@ -58,9 +58,6 @@ class Board:
         # Event handler that will be triggered when units attack 
         self.attackNow = EventHook()
         
-        # Event handler that will be triggered when an enemy unit hits the board owner
-        self.playerIsHit = EventHook()
-        
         # Event handler that will be triggered when an emeny unit attacks.
         # The argument to the event handler is a list of AttackSummary.
         self.attackReceived = EventHook()
